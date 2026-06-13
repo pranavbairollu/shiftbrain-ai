@@ -48,6 +48,9 @@ export default function Home() {
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
   const [onboardingSleepGoal, setOnboardingSleepGoal] = useState<string>("8.0");
   const [onboardingCommute, setOnboardingCommute] = useState<number>(60);
+  const [userName, setUserName] = useState<string>("Pranav");
+  const [onboardingName, setOnboardingName] = useState<string>("Pranav");
+  const [userNameInput, setUserNameInput] = useState<string>("Pranav");
   
   // Roster State
   const [activeShift, setActiveShift] = useState<ParsedShift | null>(null);
@@ -85,10 +88,14 @@ export default function Home() {
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [showSimulatedNotif, setShowSimulatedNotif] = useState<string | null>(null);
 
-  // Load configuration from local storage on mount
   useEffect(() => {
     const onboarded = localStorage.getItem("sb_onboarded") === "true";
     setHasOnboarded(onboarded);
+
+    const savedName = localStorage.getItem("sb_user_name") || "Pranav";
+    setUserName(savedName);
+    setOnboardingName(savedName);
+    setUserNameInput(savedName);
 
     const savedShift = localStorage.getItem("sb_active_shift");
     if (savedShift) {
@@ -262,6 +269,8 @@ export default function Home() {
       shift_name: shiftNameInput,
       commute_mins: commuteMinsInput
     };
+    localStorage.setItem("sb_user_name", userNameInput);
+    setUserName(userNameInput);
     saveActiveShift(updated);
     setShowRosterEditor(false);
     saveCompletedActions({});
@@ -456,6 +465,9 @@ export default function Home() {
   // Onboarding utilities
   const finishOnboarding = () => {
     localStorage.setItem("sb_onboarded", "true");
+    localStorage.setItem("sb_user_name", onboardingName);
+    setUserName(onboardingName);
+    setUserNameInput(onboardingName);
     setHasOnboarded(true);
     if (!activeShift) {
       saveActiveShift(DEFAULT_SHIFT);
@@ -466,10 +478,14 @@ export default function Home() {
     localStorage.removeItem("sb_onboarded");
     localStorage.removeItem("sb_active_shift");
     localStorage.removeItem("sb_completed_actions");
+    localStorage.removeItem("sb_user_name");
     setCompletedActions({});
     setActiveShift(null);
     setHasOnboarded(false);
     setOnboardingStep(1);
+    setUserName("Pranav");
+    setOnboardingName("Pranav");
+    setUserNameInput("Pranav");
   };
 
   // Helper to trigger simulated push notifications
@@ -537,6 +553,17 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col gap-4 py-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6660]">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={onboardingName}
+                    onChange={(e) => setOnboardingName(e.target.value)}
+                    className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-sm text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6660]">Daily Sleep Need (hours)</label>
                   <select
@@ -692,6 +719,17 @@ export default function Home() {
               {ocrError && (
                 <p className="text-[10px] text-red-500 font-semibold">{ocrError}</p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-[#5F6660] uppercase">Your Name</label>
+              <input
+                type="text"
+                required
+                value={userNameInput}
+                onChange={(e) => setUserNameInput(e.target.value)}
+                className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
+              />
             </div>
 
             <div className="flex flex-col gap-1">
@@ -878,7 +916,7 @@ export default function Home() {
         {/* Companion Greeting (Concept C) */}
         <div className="flex flex-col px-1">
           <span className="text-xl font-bold font-display tracking-tight text-[#1A1D1A]">
-            Good evening, Pranav.
+            Good evening, {userName}.
           </span>
           <span className="text-xs text-[#5F6660] mt-0.5">
             {getCompanionGreeting()}
