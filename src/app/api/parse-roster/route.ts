@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     const prompt = `
       You are an expert scheduler and data extraction AI.
@@ -71,27 +70,54 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType,
-              },
+    const contentsPayload = [
+      {
+        role: "user",
+        parts: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
             },
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
+          },
+          {
+            text: prompt,
+          },
+        ],
       },
-    });
+    ];
+
+    const generationConfig = {
+      responseMimeType: "application/json",
+    };
+
+    let result;
+    const modelCandidates = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-1.5-flash"];
+    let lastError = null;
+
+    for (const modelName of modelCandidates) {
+      try {
+        console.log(`Attempting OCR with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        result = await model.generateContent({
+          contents: contentsPayload,
+          generationConfig,
+        });
+        if (result) {
+          console.log(`OCR parsing succeeded with model: ${modelName}`);
+          break;
+        }
+      } catch (err: any) {
+        console.error(`Model ${modelName} failed:`, err);
+        lastError = err;
+      }
+    }
+
+    if (!result) {
+      throw new Error(
+        `Gemini API is currently overloaded or key has restricted access. Last error: ${lastError?.message || "Unknown error"}`
+      );
+    }
 
     let textResponse = result.response.text().trim();
     
