@@ -1,0 +1,60 @@
+{
+  "roster-01.png": [
+    {
+      "date": "2026-06-15",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-16",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-17",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-18",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-19",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    }
+  ],
+  "roster-02.png": [
+    {
+      "date": "2026-06-15",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-16",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-17",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    },
+    {
+      "date": "2026-06-19",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "shift_name": "Night Shift"
+    }
+  ]
+}
