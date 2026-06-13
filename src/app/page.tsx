@@ -194,14 +194,29 @@ export default function Home() {
     const [hours, minutes] = logSleepTime.split(":").map(Number);
     const wakeDateObj = new Date(year, month - 1, day, hours, minutes);
 
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    let dateLabel = "Today";
+    
+    if (logSleepDate !== todayStr) {
+      const selDate = new Date(year, month - 1, day);
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const diffDays = Math.round((selDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays === -1) {
+        dateLabel = "Yesterday";
+      } else {
+        dateLabel = logSleepDate;
+      }
+    }
+
     const newLog: SleepLog = {
       id: Date.now().toString(),
       duration: parseFloat(logSleepDuration),
       wakeTime: wakeDateObj,
-      dateString: "Today"
+      dateString: dateLabel
     };
 
-    const cleanLogs = sleepLogs.filter(log => log.dateString !== "Today");
+    const cleanLogs = sleepLogs.filter(log => log.dateString !== dateLabel);
     setSleepLogs([newLog, ...cleanLogs]);
     setShowSleepLogger(false);
   };
@@ -380,7 +395,12 @@ export default function Home() {
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sleep Debt Status</span>
               <span className="text-xs font-semibold text-slate-300">
-                {sleepDebt > 0 ? `-${sleepDebt.toFixed(1)}h sleep deficit` : "No sleep debt. Performance optimized."}
+                {sleepDebt > 0 ? `-${sleepDebt.toFixed(1)}h sleep debt` : "No sleep debt"}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                {sleepDebt > 0 
+                  ? `Focus capacity: down ~${Math.min(50, Math.round(sleepDebt * 6.67))}%` 
+                  : "Focus capacity: 100% (Optimized)"}
               </span>
             </div>
 
