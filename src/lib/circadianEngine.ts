@@ -220,6 +220,20 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
       relative_day: getRelativeDayLabel(caffeineCutoff, shiftStart),
     });
 
+    // Digestive Wind-Down (3 hours before sleep window)
+    const digestStart = new Date(sleepStart);
+    digestStart.setHours(digestStart.getHours() - 3);
+    items.push({
+      id: `digest-${shift.date}`,
+      type: "caffeine",
+      time_display: `${formatTime(digestStart)} - ${formatTime(sleepStart)}`,
+      time_sort: digestStart,
+      title: "Digestive Wind-Down (Fasting Window)",
+      description: "Avoid heavy meals and simple sugars now. Shift workers experience insulin resistance at night; keeping this 3-hour pre-sleep fasting window protects your metabolic health and sleep quality.",
+      tag: "Nutrition & Fasting",
+      relative_day: getRelativeDayLabel(digestStart, shiftStart),
+    });
+
   } else if (isEveningShift) {
     // EVENING SHIFT PROTOCOLS (e.g. 2 PM - 11 PM)
 
@@ -325,6 +339,20 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
       relative_day: getRelativeDayLabel(caffeineCutoff, shiftStart),
     });
 
+    // Digestive Wind-Down (3 hours before sleep window)
+    const digestStart = new Date(finalSleepStart);
+    digestStart.setHours(digestStart.getHours() - 3);
+    items.push({
+      id: `digest-${shift.date}`,
+      type: "caffeine",
+      time_display: `${formatTime(digestStart)} - ${formatTime(finalSleepStart)}`,
+      time_sort: digestStart,
+      title: "Digestive Wind-Down (Fasting Window)",
+      description: "Avoid heavy meals and simple sugars now. Shift workers experience insulin resistance at night; keeping this 3-hour pre-sleep fasting window protects your metabolic health and sleep quality.",
+      tag: "Nutrition & Fasting",
+      relative_day: getRelativeDayLabel(digestStart, shiftStart),
+    });
+
   } else {
     // STANDARD DAY SHIFT PROTOCOLS (e.g. 8 AM - 5 PM)
 
@@ -418,6 +446,20 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
       description: "Avoid post-lunch caffeine to prevent disruption of your night sleep cycles.",
       tag: "Caffeine Cutoff",
       relative_day: getRelativeDayLabel(caffeineCutoff, shiftStart),
+    });
+
+    // Digestive Wind-Down (3 hours before sleep window)
+    const digestStart = new Date(sleepStart);
+    digestStart.setHours(digestStart.getHours() - 3);
+    items.push({
+      id: `digest-${shift.date}`,
+      type: "caffeine",
+      time_display: `${formatTime(digestStart)} - ${formatTime(sleepStart)}`,
+      time_sort: digestStart,
+      title: "Digestive Wind-Down (Fasting Window)",
+      description: "Avoid heavy meals and simple sugars now. Shift workers experience insulin resistance at night; keeping this 3-hour pre-sleep fasting window protects your metabolic health and sleep quality.",
+      tag: "Nutrition & Fasting",
+      relative_day: getRelativeDayLabel(digestStart, shiftStart),
     });
   }
 
