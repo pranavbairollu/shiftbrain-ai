@@ -28,8 +28,8 @@ import { generateSurvivalPlan, ParsedShift, SurvivalItem } from "../lib/circadia
 // Default shift: Concentrix night shift
 const DEFAULT_SHIFT: ParsedShift = {
   date: new Date().toISOString().split("T")[0],
-  start_time: "22:00",
-  end_time: "07:00",
+  start_time: "17:30",
+  end_time: "03:00",
   shift_name: "Concentrix Support (Night Shift)",
   commute_mins: 60
 };
