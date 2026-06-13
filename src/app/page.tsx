@@ -71,6 +71,7 @@ export default function Home() {
   // OCR Optional States
   const [loadingOCR, setLoadingOCR] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Recalculate sleep debt and dynamically update the Decision Alert Banner
@@ -177,6 +178,11 @@ export default function Home() {
   // Form Handlers
   const handleUpdateShift = (e: React.FormEvent) => {
     e.preventDefault();
+    if (shiftStartInput === shiftEndInput) {
+      setFormError("Shift start and end times cannot be identical.");
+      return;
+    }
+    setFormError(null);
     setActiveShift({
       date: shiftDateInput,
       start_time: shiftStartInput,
@@ -530,6 +536,10 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            {formError && (
+              <p className="text-[10px] text-red-400 font-semibold">{formError}</p>
+            )}
 
             <button
               type="submit"
