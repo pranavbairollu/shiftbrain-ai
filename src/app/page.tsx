@@ -267,13 +267,32 @@ export default function Home() {
       }
 
       const firstShift = data.shifts[0];
+
+      // Strict schema validation to prevent client-side crashes
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      if (
+        !firstShift.date || !dateRegex.test(firstShift.date) ||
+        !firstShift.start_time || !timeRegex.test(firstShift.start_time) ||
+        !firstShift.end_time || !timeRegex.test(firstShift.end_time)
+      ) {
+        throw new Error("Scanned roster data is incomplete or has invalid dates/times. Please adjust manually.");
+      }
+
       setShiftDateInput(firstShift.date);
       setShiftStartInput(firstShift.start_time);
       setShiftEndInput(firstShift.end_time);
-      setShiftNameInput(firstShift.shift_name);
+      setShiftNameInput(firstShift.shift_name || "Scanned Process");
       setCommuteMinsInput(firstShift.commute_mins || 60);
       
-      setActiveShift(firstShift);
+      setActiveShift({
+        date: firstShift.date,
+        start_time: firstShift.start_time,
+        end_time: firstShift.end_time,
+        shift_name: firstShift.shift_name || "Scanned Process",
+        commute_mins: firstShift.commute_mins || 60
+      });
       setCompletedActions({});
     } catch (err: any) {
       console.error(err);

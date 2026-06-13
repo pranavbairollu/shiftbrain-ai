@@ -25,10 +25,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const mimeType = file.type || "image/png";
+    if (!mimeType.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only image files are supported." },
+        { status: 400 }
+      );
+    }
+
     // Convert file to base64
     const buffer = Buffer.from(await file.arrayBuffer());
     const base64Data = buffer.toString("base64");
-    const mimeType = file.type || "image/png";
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -86,9 +93,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const textResponse = result.response.text();
-    const parsedData = JSON.parse(textResponse);
+    let textResponse = result.response.text().trim();
+    
+    // Strip markdown code block wrappers if they were returned anyway
+    if (textResponse.startsWith("```")) {
+      textResponse = textResponse.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
 
+    const parsedData = JSON.parse(textResponse);
     return NextResponse.json(parsedData);
   } catch (error: any) {
     console.error("Roster parsing error:", error);
