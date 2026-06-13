@@ -359,30 +359,30 @@ export default function Home() {
   const getCardStyle = (type: string) => {
     switch (type) {
       case "sleep":
-        return "border-indigo-950 bg-indigo-950/20 hover:bg-indigo-950/30 text-indigo-100 glow-card";
+        return "glow-card-sleep glass-panel text-indigo-100";
       case "caffeine":
-        return "border-amber-950 bg-amber-950/20 hover:bg-amber-950/30 text-amber-100 glow-card-orange";
+        return "glow-card-caffeine glass-panel text-amber-100";
       case "focus":
-        return "border-purple-950 bg-purple-950/20 hover:bg-purple-950/30 text-purple-100 glow-card";
+        return "glow-card-focus glass-panel text-purple-100";
       case "shift":
-        return "border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-100";
+        return "border-slate-800/40 bg-slate-900/10 text-slate-200 glass-panel";
       case "light":
-        return "border-sky-950 bg-sky-950/20 hover:bg-sky-950/30 text-sky-100 glow-card";
+        return "glow-card-light glass-panel text-sky-100";
       case "wake":
-        return "border-emerald-950 bg-emerald-950/20 hover:bg-emerald-950/30 text-emerald-100 glow-card-green";
+        return "glow-card-wake glass-panel text-emerald-100";
       default:
-        return "border-slate-800 bg-slate-900/40 text-slate-100";
+        return "border-slate-800 bg-slate-900/40 text-slate-100 glass-panel";
     }
   };
 
   const getBannerColor = (level: string) => {
-    if (level === "Low Risk") return "border-emerald-950 bg-emerald-950/20 text-emerald-300";
-    if (level === "Moderate Risk") return "border-amber-950 bg-amber-950/20 text-amber-300";
-    return "border-red-950 bg-red-950/20 text-red-300";
+    if (level === "Low Risk") return "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 backdrop-blur-md";
+    if (level === "Moderate Risk") return "border-amber-500/20 bg-amber-500/5 text-amber-400 backdrop-blur-md";
+    return "border-red-500/20 bg-red-500/5 text-red-400 backdrop-blur-md";
   };
 
   return (
-    <main className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col items-center px-4 py-8 md:py-12">
+    <main className="min-h-screen bg-transparent text-slate-100 flex flex-col items-center px-4 py-8 md:py-12">
       {/* Brand Header */}
       <header className="w-full max-w-md flex justify-between items-center mb-6 px-1">
         <div className="flex items-center gap-2">
@@ -406,7 +406,7 @@ export default function Home() {
       <section className="w-full max-w-md flex flex-col gap-5">
         
         {/* 1. Dynamic Fatigue Forecast Alert Banner */}
-        <div className={`rounded-2xl border p-5 flex gap-4 items-start transition-colors duration-300 ${getBannerColor(fatigueLevel)}`}>
+        <div className={`rounded-2xl border p-5 flex gap-4 items-start transition-all duration-500 animate-pulse-subtle ${getBannerColor(fatigueLevel)}`}>
           <div className="shrink-0 mt-0.5">
             <Zap className="h-5 w-5 animate-pulse" />
           </div>
@@ -676,8 +676,8 @@ export default function Home() {
                   onClick={() => toggleAction(item.id)}
                   className={`border rounded-xl p-4 flex gap-4 cursor-pointer transition-all duration-300 select-none ${
                     isChecked
-                      ? "border-emerald-900 bg-emerald-950/5 hover:bg-emerald-950/10 text-slate-300 opacity-60"
-                      : "border-slate-900 bg-slate-950/20 hover:border-slate-850 hover:bg-slate-950/30"
+                      ? "border-emerald-950/20 bg-emerald-950/5 text-slate-400 opacity-60"
+                      : getCardStyle(item.type)
                   }`}
                 >
                   {/* Custom Checkbox */}

@@ -1,27 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
+}
+
 :root {
-  --background: #090d16;
+  --background: #030712;
   --foreground: #f8fafc;
 }
 
 body {
   color: var(--foreground);
   background-color: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(244, 100%, 15%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(292, 100%, 15%, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, hsla(217, 100%, 15%, 0.1) 0px, transparent 50%);
+  background-attachment: fixed;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom glow animations for premium night UI */
-.glow-card {
-  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.1), 0 0 15px -5px rgba(147, 51, 234, 0.05);
+/* Premium Custom Glassmorphism Styles */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glow-card-green {
-  box-shadow: 0 0 25px -5px rgba(34, 197, 94, 0.1);
+.glass-panel:hover {
+  background: rgba(17, 24, 39, 0.55);
+  border-color: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
 }
 
-.glow-card-orange {
-  box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.1);
+/* Precise card glows aligned by item type */
+.glow-card-sleep {
+  box-shadow: 0 0 25px -12px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+.glow-card-sleep:hover {
+  box-shadow: 0 0 30px -5px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.glow-card-caffeine {
+  box-shadow: 0 0 25px -12px rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+.glow-card-caffeine:hover {
+  box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.glow-card-focus {
+  box-shadow: 0 0 25px -12px rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.15);
+}
+.glow-card-focus:hover {
+  box-shadow: 0 0 30px -5px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.04);
+}
+
+.glow-card-light {
+  box-shadow: 0 0 25px -12px rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.15);
+}
+.glow-card-light:hover {
+  box-shadow: 0 0 30px -5px rgba(14, 165, 233, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(14, 165, 233, 0.35);
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.glow-card-wake {
+  box-shadow: 0 0 25px -12px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.glow-card-wake:hover {
+  box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+/* Micro-animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.95; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.997); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(3, 7, 18, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
