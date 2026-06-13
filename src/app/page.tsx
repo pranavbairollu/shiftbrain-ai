@@ -80,15 +80,20 @@ export default function Home() {
     setSleepDebt(debt);
 
     // 2. Generate dynamic forecast warnings based on active shift & checks
+    if (!activeShift || !activeShift.start_time) return;
+    
     const shiftStart = activeShift.start_time;
-    const isNight = parseInt(shiftStart.split(":")[0]) >= 18 || parseInt(shiftStart.split(":")[0]) < 4;
+    const startHourPart = shiftStart.split(":")[0];
+    const startHour = isNaN(parseInt(startHourPart)) ? 22 : parseInt(startHourPart); // Default to 22 (Night Shift) if invalid
+    const isNight = startHour >= 18 || startHour < 4;
 
-    const isNapCompleted = Object.keys(completedActions).some(
-      key => key.includes("nap") && completedActions[key]
-    );
-    const isCaffeineCompleted = Object.keys(completedActions).some(
-      key => key.includes("caffeine") && completedActions[key]
-    );
+    const currentPlan = generateSurvivalPlan(activeShift);
+    
+    const napItem = currentPlan.find(item => item.type === "sleep" && item.title.toLowerCase().includes("nap"));
+    const isNapCompleted = napItem ? !!completedActions[napItem.id] : false;
+
+    const caffeineItem = currentPlan.find(item => item.type === "caffeine");
+    const isCaffeineCompleted = caffeineItem ? !!completedActions[caffeineItem.id] : false;
 
     if (isNight) {
       if (debt > 4) {
