@@ -545,9 +545,16 @@ export default function Home() {
                       <span className="text-[9px] font-bold tracking-wider uppercase text-slate-500">
                         {item.tag}
                       </span>
-                      <span className={`text-[10px] font-bold font-mono ${isChecked ? "text-emerald-500" : "text-slate-300"}`}>
-                        {item.time_display}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold font-mono ${isChecked ? "text-emerald-500" : "text-slate-300"}`}>
+                          {item.time_display}
+                        </span>
+                        {item.relative_day && (
+                          <span className="text-[8px] font-bold bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
+                            {item.relative_day}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* What */}
