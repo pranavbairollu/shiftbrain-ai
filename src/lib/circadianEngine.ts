@@ -3,6 +3,7 @@ export interface ParsedShift {
   start_time: string; // HH:MM
   end_time: string; // HH:MM
   shift_name: string;
+  commute_mins?: number; // Optional commute transit duration
 }
 
 export interface SurvivalItem {
@@ -44,6 +45,7 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
   
   const shiftStart = parseDateTime(shift.date, shift.start_time);
   let shiftEnd = parseDateTime(shift.date, shift.end_time);
+  const commuteMins = shift.commute_mins ?? 60; // Default to 60 mins commute
   
   // If end time is chronologically before start time, it means the shift crosses midnight
   if (shiftEnd < shiftStart) {
@@ -53,10 +55,10 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
   const startHour = shiftStart.getHours();
 
   // Determine Shift Type
-  // Night shift starts between 6 PM (18:00) and 4 AM (04:00)
-  const isNightShift = startHour >= 18 || startHour < 4;
-  // Evening shift starts between 12 PM (12:00) and 6 PM (18:00)
-  const isEveningShift = startHour >= 12 && startHour < 18;
+  // Night shift starts between 5 PM (17:00) and 4 AM (04:00), or ends after midnight
+  const isNightShift = startHour >= 17 || startHour < 4;
+  // Evening shift starts between 12 PM (12:00) and 5 PM (17:00)
+  const isEveningShift = startHour >= 12 && startHour < 17;
   
   // 1. Add the Work Shift itself
   items.push({
@@ -75,21 +77,20 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
     // Commute Home (Wear Blue Blockers)
     const commuteStart = new Date(shiftEnd);
     const commuteEnd = new Date(shiftEnd);
-    commuteEnd.setMinutes(commuteEnd.getMinutes() + 45); // 45 minute commute window
+    commuteEnd.setMinutes(commuteEnd.getMinutes() + commuteMins);
     items.push({
-      id: `commute-${shift.date}`,
+      id: `commute-home-${shift.date}`,
       type: "light",
       time_display: `${formatTime(commuteStart)} - ${formatTime(commuteEnd)}`,
       time_sort: commuteStart,
-      title: "Wear Sunglasses / Blue Blockers",
-      description: "Put on dark sunglasses or orange blue-blocker glasses for your commute. Minimize exposure to bright morning sunlight to protect your melatonin levels.",
+      title: "Wear Sunglasses / Blue Blockers (Commute Home)",
+      description: `Put on dark sunglasses or orange blue-blocker glasses during your ${commuteMins}-minute commute home. Minimize exposure to bright morning sunlight to protect your melatonin levels.`,
       tag: "Circadian Protection",
     });
 
-    // Core Sleep Window (typically 1.5 hours post-shift to allow wind down)
+    // Core Sleep Window (commute duration + 30 mins wind down post-shift)
     const sleepStart = new Date(shiftEnd);
-    sleepStart.setHours(sleepStart.getHours() + 1);
-    sleepStart.setMinutes(sleepStart.getMinutes() + 30); // Sleep at 8:30 AM if shift ends at 7 AM
+    sleepStart.setMinutes(sleepStart.getMinutes() + commuteMins + 30);
     const sleepEnd = new Date(sleepStart);
     sleepEnd.setHours(sleepEnd.getHours() + 7); // 7 hours core sleep
 
@@ -135,12 +136,8 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
     });
 
     // Caffeine Cutoff (6 hours before the next day's sleep window)
-    // The next day's sleep window starts at the same time: sleepStart (which is shiftEnd + 1.5h)
-    // So caffeine cutoff is 6 hours prior to that sleepStart.
     const caffeineCutoff = new Date(sleepStart);
     caffeineCutoff.setHours(caffeineCutoff.getHours() - 6);
-    // Adjust caffeine cutoff to be during the shift
-    // For example, if sleep is at 8:30 AM, caffeine cutoff is 2:30 AM.
     items.push({
       id: `caffeine-${shift.date}`,
       type: "caffeine",
@@ -165,6 +162,20 @@ export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
       title: "Pre-Shift Anchor Nap",
       description: "Take a 45-60 minute nap to bank alertness before your night shift commences. Wake up with a splash of cold water.",
       tag: "Energy Banking",
+    });
+
+    // Commute to Work (Seek Bright Light / Alertness)
+    const commuteToWorkStart = new Date(shiftStart);
+    commuteToWorkStart.setMinutes(commuteToWorkStart.getMinutes() - commuteMins);
+    const commuteToWorkEnd = new Date(shiftStart);
+    items.push({
+      id: `commute-work-${shift.date}`,
+      type: "light",
+      time_display: `${formatTime(commuteToWorkStart)} - ${formatTime(commuteToWorkEnd)}`,
+      time_sort: commuteToWorkStart,
+      title: "Commute to Work (Alertness)",
+      description: `Leave home at ${formatTime(commuteToWorkStart)}. Expose yourself to bright light (natural sunlight or bright cab lighting) during your commute to maximize alertness before starting your shift.`,
+      tag: "Transit Alertness",
     });
 
   } else if (isEveningShift) {

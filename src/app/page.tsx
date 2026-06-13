@@ -26,7 +26,8 @@ const DEFAULT_SHIFT: ParsedShift = {
   date: new Date().toISOString().split("T")[0],
   start_time: "22:00",
   end_time: "07:00",
-  shift_name: "Concentrix Support (Night Shift)"
+  shift_name: "Concentrix Support (Night Shift)",
+  commute_mins: 60
 };
 
 interface SleepLog {
@@ -44,6 +45,7 @@ export default function Home() {
   const [shiftDateInput, setShiftDateInput] = useState(DEFAULT_SHIFT.date);
   const [shiftStartInput, setShiftStartInput] = useState(DEFAULT_SHIFT.start_time);
   const [shiftEndInput, setShiftEndInput] = useState(DEFAULT_SHIFT.end_time);
+  const [commuteMinsInput, setCommuteMinsInput] = useState<number>(DEFAULT_SHIFT.commute_mins || 60);
 
   // Sleep Logging State
   const [showSleepLogger, setShowSleepLogger] = useState(false);
@@ -136,7 +138,8 @@ export default function Home() {
       date: shiftDateInput,
       start_time: shiftStartInput,
       end_time: shiftEndInput,
-      shift_name: shiftNameInput
+      shift_name: shiftNameInput,
+      commute_mins: commuteMinsInput
     });
     setShowRosterEditor(false);
     setCompletedActions({});
@@ -198,6 +201,7 @@ export default function Home() {
       setShiftStartInput(firstShift.start_time);
       setShiftEndInput(firstShift.end_time);
       setShiftNameInput(firstShift.shift_name);
+      setCommuteMinsInput(firstShift.commute_mins || 60);
       
       setActiveShift(firstShift);
       setCompletedActions({});
@@ -224,6 +228,8 @@ export default function Home() {
         why = "Required to allow sleep hormones to build up before your morning bedtime.";
       } else if (item.type === "light" && item.title.includes("Blue")) {
         why = "Morning sunlight triggers cortisol, which will block sleep hormones.";
+      } else if (item.type === "light" && item.title.includes("Alertness")) {
+        why = "Bright light exposure signals wakefulness to the brain and reduces pre-shift sleep inertia.";
       } else if (item.type === "wake") {
         why = "Natural light exposure halts melatonin and anchors daytime alertness.";
       } else if (item.type === "focus") {
@@ -378,7 +384,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">Date</label>
                 <input
@@ -386,10 +392,25 @@ export default function Home() {
                   required
                   value={shiftDateInput}
                   onChange={(e) => setShiftDateInput(e.target.value)}
-                  className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
+                  className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
                 />
               </div>
 
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Commute Duration (mins)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  max="240"
+                  value={commuteMinsInput}
+                  onChange={(e) => setCommuteMinsInput(parseInt(e.target.value) || 0)}
+                  className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">Start Time</label>
                 <input
@@ -397,7 +418,7 @@ export default function Home() {
                   required
                   value={shiftStartInput}
                   onChange={(e) => setShiftStartInput(e.target.value)}
-                  className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
+                  className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
                 />
               </div>
 
@@ -408,7 +429,7 @@ export default function Home() {
                   required
                   value={shiftEndInput}
                   onChange={(e) => setShiftEndInput(e.target.value)}
-                  className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
+                  className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
                 />
               </div>
             </div>
