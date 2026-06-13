@@ -35,6 +35,7 @@ interface SleepLog {
   duration: number;
   wakeTime: Date;
   dateString: string;
+  quality: number; // Subjective quality (1-10)
 }
 
 export default function Home() {
@@ -52,11 +53,12 @@ export default function Home() {
   const [logSleepDate, setLogSleepDate] = useState(new Date().toISOString().split("T")[0]);
   const [logSleepTime, setLogSleepTime] = useState("08:30");
   const [logSleepDuration, setLogSleepDuration] = useState("6.5");
+  const [logSleepQuality, setLogSleepQuality] = useState<number>(8); // Default to 8 (Good)
   
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([
-    { id: "1", duration: 7.5, wakeTime: new Date(Date.now() - 10 * 60 * 60 * 1000), dateString: "Today" },
-    { id: "2", duration: 6.5, wakeTime: new Date(Date.now() - 24 * 60 * 60 * 1000), dateString: "Yesterday" },
-    { id: "3", duration: 5.5, wakeTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), dateString: "2 days ago" },
+    { id: "1", duration: 7.5, wakeTime: new Date(Date.now() - 10 * 60 * 60 * 1000), dateString: "Today", quality: 8 },
+    { id: "2", duration: 6.5, wakeTime: new Date(Date.now() - 24 * 60 * 60 * 1000), dateString: "Yesterday", quality: 7 },
+    { id: "3", duration: 5.5, wakeTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), dateString: "2 days ago", quality: 6 },
   ]);
 
   // Checklist states
@@ -76,9 +78,12 @@ export default function Home() {
 
   // Recalculate sleep debt and dynamically update the Decision Alert Banner
   useEffect(() => {
-    // 1. Calculate Sleep Debt
+    // 1. Calculate Sleep Debt using subjective quality scaling (Effective Sleep)
     const dailyBaseline = 8.0;
-    const totalSleepReceived = sleepLogs.reduce((sum, log) => sum + log.duration, 0);
+    const totalSleepReceived = sleepLogs.reduce((sum, log) => {
+      const effFactor = 0.5 + (log.quality / 20.0); // 10/10 -> 100% effective, 5/10 -> 75% effective
+      return sum + (log.duration * effFactor);
+    }, 0);
     const totalSleepRequired = dailyBaseline * sleepLogs.length;
     const debt = Math.max(0, totalSleepRequired - totalSleepReceived);
     setSleepDebt(debt);
@@ -219,7 +224,8 @@ export default function Home() {
       id: Date.now().toString(),
       duration: parseFloat(logSleepDuration),
       wakeTime: wakeDateObj,
-      dateString: dateLabel
+      dateString: dateLabel,
+      quality: logSleepQuality
     };
 
     const cleanLogs = sleepLogs.filter(log => log.dateString !== dateLabel);
@@ -436,7 +442,12 @@ export default function Home() {
                     new Date(current.wakeTime).getTime() > new Date(latest.wakeTime).getTime() ? current : latest,
                     sleepLogs[0]
                   ).dateString
-                })`
+                }) • Quality: ${
+                  sleepLogs.reduce((latest, current) =>
+                    new Date(current.wakeTime).getTime() > new Date(latest.wakeTime).getTime() ? current : latest,
+                    sleepLogs[0]
+                  ).quality
+                }/10`
               ) : (
                 "Please log sleep to calibrate wake timer"
               )}
@@ -591,6 +602,21 @@ export default function Home() {
                   className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Sleep Quality (1-10)</label>
+              <select
+                value={logSleepQuality}
+                onChange={(e) => setLogSleepQuality(parseInt(e.target.value))}
+                className="bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none"
+              >
+                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((q) => (
+                  <option key={q} value={q}>
+                    {q} - {q >= 9 ? "Excellent" : q >= 7 ? "Good" : q >= 5 ? "Fair" : "Poor"}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex gap-2">
