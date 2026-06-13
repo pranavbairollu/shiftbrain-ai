@@ -54,9 +54,9 @@ export default function Home() {
   const [logSleepDuration, setLogSleepDuration] = useState("6.5");
   
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([
-    { id: "1", duration: 6.5, wakeTime: new Date(Date.now() - 24 * 60 * 60 * 1000), dateString: "Yesterday" },
-    { id: "2", duration: 5.5, wakeTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), dateString: "2 days ago" },
-    { id: "3", duration: 7.0, wakeTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), dateString: "3 days ago" },
+    { id: "1", duration: 7.5, wakeTime: new Date(Date.now() - 10 * 60 * 60 * 1000), dateString: "Today" },
+    { id: "2", duration: 6.5, wakeTime: new Date(Date.now() - 24 * 60 * 60 * 1000), dateString: "Yesterday" },
+    { id: "3", duration: 5.5, wakeTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), dateString: "2 days ago" },
   ]);
 
   // Checklist states
@@ -66,6 +66,7 @@ export default function Home() {
   const [sleepDebt, setSleepDebt] = useState(3.5); // positive number representing deficit
   const [forecastAlert, setForecastAlert] = useState("Concentration drop predicted at 02:30 AM.");
   const [fatigueLevel, setFatigueLevel] = useState("High Risk");
+  const [netHoursAwake, setNetHoursAwake] = useState(10.0);
 
   // OCR Optional States
   const [loadingOCR, setLoadingOCR] = useState(false);
@@ -81,7 +82,35 @@ export default function Home() {
     const debt = Math.max(0, totalSleepRequired - totalSleepReceived);
     setSleepDebt(debt);
 
-    // 2. Generate dynamic forecast warnings based on active shift & checks
+    // 2. Calculate continuous wake time and sleep pressure
+    let latestLog: SleepLog | null = null;
+    if (sleepLogs.length > 0) {
+      latestLog = sleepLogs.reduce((latest, current) => {
+        const currentVal = new Date(current.wakeTime).getTime();
+        const latestVal = new Date(latest.wakeTime).getTime();
+        return currentVal > latestVal ? current : latest;
+      }, sleepLogs[0]);
+    }
+
+    let hoursAwakeRaw = 0;
+    let computedNetHoursAwake = 0;
+    let isNapCompleted = false;
+
+    if (latestLog && activeShift) {
+      const currentPlan = generateSurvivalPlan(activeShift);
+      const napItem = currentPlan.find(item => item.type === "sleep" && item.title.toLowerCase().includes("nap"));
+      isNapCompleted = napItem ? !!completedActions[napItem.id] : false;
+
+      const wakeDate = new Date(latestLog.wakeTime);
+      const diffMs = Date.now() - wakeDate.getTime();
+      hoursAwakeRaw = Math.max(0, diffMs / (1000 * 60 * 60));
+      
+      const napReduction = isNapCompleted ? 4.0 : 0.0;
+      computedNetHoursAwake = Math.max(0, hoursAwakeRaw - napReduction);
+      setNetHoursAwake(computedNetHoursAwake);
+    }
+
+    // 3. Generate dynamic forecast warnings based on active shift & checks
     if (!activeShift || !activeShift.start_time) return;
     
     const shiftStart = activeShift.start_time;
@@ -90,45 +119,59 @@ export default function Home() {
     const isNight = startHour >= 18 || startHour < 4;
 
     const currentPlan = generateSurvivalPlan(activeShift);
-    
-    const napItem = currentPlan.find(item => item.type === "sleep" && item.title.toLowerCase().includes("nap"));
-    const isNapCompleted = napItem ? !!completedActions[napItem.id] : false;
-
     const caffeineItem = currentPlan.find(item => item.type === "caffeine");
     const isCaffeineCompleted = caffeineItem ? !!completedActions[caffeineItem.id] : false;
 
+    let level = "Low Risk";
+    let alertText = "";
+
+    // Circadian Baseline Forecast
     if (isNight) {
       if (debt > 4) {
         if (isNapCompleted) {
-          setForecastAlert("Concentration drop delayed to 04:30 AM (Nap active).");
-          setFatigueLevel("Moderate Risk");
+          alertText = "Concentration drop delayed to 04:30 AM (Nap active).";
+          level = "Moderate Risk";
         } else {
-          setForecastAlert("Concentration drop predicted at 02:30 AM. Fatigue risk: High.");
-          setFatigueLevel("High Risk");
+          alertText = "Concentration drop predicted at 02:30 AM. Fatigue risk: High.";
+          level = "High Risk";
         }
       } else {
         if (isNapCompleted) {
-          setForecastAlert("Alertness stable until shift end (07:00 AM).");
-          setFatigueLevel("Low Risk");
+          alertText = `Alertness stable until shift end (${activeShift.end_time}).`;
+          level = "Low Risk";
         } else {
-          setForecastAlert("Concentration drop predicted at 04:00 AM.");
-          setFatigueLevel("Moderate Risk");
+          alertText = "Concentration drop predicted at 02:30 AM.";
+          level = "Moderate Risk";
         }
       }
       
       if (isCaffeineCompleted) {
-        setForecastAlert(prev => prev + " Morning sleep transition: Easy.");
+        alertText += " Morning sleep transition: Easy.";
       }
     } else {
       // Day shift cases
       if (debt > 4) {
-        setForecastAlert("Fatigue warning during afternoon block (02:00 PM).");
-        setFatigueLevel("Moderate Risk");
+        alertText = "Fatigue warning during afternoon block (02:00 PM).";
+        level = "Moderate Risk";
       } else {
-        setForecastAlert("Alertness stable for daytime shift.");
-        setFatigueLevel("Low Risk");
+        alertText = "Alertness stable for daytime shift.";
+        level = "Low Risk";
       }
     }
+
+    // Overwrite alert if continuous wake time hits cognitive impairment thresholds
+    if (latestLog && hoursAwakeRaw >= 0 && hoursAwakeRaw <= 36) {
+      if (computedNetHoursAwake >= 20) {
+        alertText = `CRITICAL fatigue warning: Continuous wake time is ${computedNetHoursAwake.toFixed(1)}h. Cognitive deficit matches 0.10% BAC (equivalent to legal intoxication). Sleep immediately!`;
+        level = "High Risk";
+      } else if (computedNetHoursAwake >= 17) {
+        alertText = `WARNING: Continuous wake time is ${computedNetHoursAwake.toFixed(1)}h. Cognitive performance matches a 0.05% BAC (impaired motor control and reaction times).`;
+        level = "High Risk";
+      }
+    }
+
+    setForecastAlert(alertText);
+    setFatigueLevel(level);
   }, [sleepLogs, completedActions, activeShift]);
 
   // Form Handlers
@@ -332,20 +375,54 @@ export default function Home() {
         </div>
 
         {/* 2. Simplified Action Log Trigger */}
-        <div className="rounded-xl border border-slate-900 bg-slate-950/20 p-4 flex justify-between items-center">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sleep Debt Status</span>
-            <span className="text-xs font-semibold text-slate-300">
-              {sleepDebt > 0 ? `-${sleepDebt.toFixed(1)} hours sleep deficit` : "No sleep debt. Performance optimized."}
-            </span>
+        <div className="rounded-xl border border-slate-900 bg-slate-950/20 p-4 flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-4 divide-x divide-slate-800">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sleep Debt Status</span>
+              <span className="text-xs font-semibold text-slate-300">
+                {sleepDebt > 0 ? `-${sleepDebt.toFixed(1)}h sleep deficit` : "No sleep debt. Performance optimized."}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-0.5 pl-4">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Wake Timer</span>
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                {netHoursAwake.toFixed(1)}h awake
+                {netHoursAwake >= 17 && (
+                  <span className="text-[8px] font-bold bg-red-950 text-red-400 px-1.5 py-0.5 rounded border border-red-900">
+                    BAC Warning
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowSleepLogger(true)}
-            className="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-400 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" /> Log Sleep
-          </button>
+          <div className="flex justify-between items-center border-t border-slate-900 pt-3 mt-1">
+            <span className="text-[9px] text-slate-500">
+              {sleepLogs.length > 0 ? (
+                `Last wake: ${new Date(
+                  sleepLogs.reduce((latest, current) =>
+                    new Date(current.wakeTime).getTime() > new Date(latest.wakeTime).getTime() ? current : latest,
+                    sleepLogs[0]
+                  ).wakeTime
+                ).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} (${
+                  sleepLogs.reduce((latest, current) =>
+                    new Date(current.wakeTime).getTime() > new Date(latest.wakeTime).getTime() ? current : latest,
+                    sleepLogs[0]
+                  ).dateString
+                })`
+              ) : (
+                "Please log sleep to calibrate wake timer"
+              )}
+            </span>
+
+            <button
+              onClick={() => setShowSleepLogger(true)}
+              className="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-400 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Log Sleep
+            </button>
+          </div>
         </div>
 
         {/* Manual Shift Editor Drawer / Modal */}
