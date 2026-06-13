@@ -1,20 +1,39 @@
-# ShiftBrain: The Shift Worker Survival Companion
+# 🧠 ShiftBrain
+### The Life Operating System & Companion for Shift Workers
 
-ShiftBrain is a mobile-first, circadian-adaptation web application designed to help night-shift and rotational workers manage their sleep, caffeine, upskilling focus blocks, and light exposure. 
-
-Designed around **Duolingo-like clarity, Notion cleanliness, and Apple Health calm**, ShiftBrain prioritizes action over metrics, passing the **5-second test** to guide fatigued workers with a single tap.
+> [!NOTE]
+> ShiftBrain is a mobile-first, circadian-adaptation web application designed to help night-shift and rotational workers manage their sleep cycles, caffeine cutoffs, upskilling blocks, and light exposure. 
+> Designed around **Apple Health simplicity, Duolingo clarity, and Notion cleanliness**, it passes the **5-second test** to guide fatigued workers with a single tap.
 
 ---
 
-## 🌟 Core Features
+## 🗺️ System Architecture Flow
 
-1.  **Next Best Action Hero:** A prominent card at the top of the dashboard prompting the user with exactly *what* to do right now, *when* to do it, and *why* it matters biologically.
-2.  **Multimodal OCR Roster Scanner:** Drag-and-drop or take a screenshot of your work shift portal (Excel sheet, Kronos table, or WhatsApp image). Gemini AI instantly parses dates and times to build your plan.
-3.  **Upcoming Timeline (Concept B):** A truncated, clean vertical timeline displaying only the next 3 steps in the day to minimize cognitive clutter. Full 24h timelines can be expanded with a single tap.
-4.  **Caring Safety Alerts:** Factual, Apple-style wellness notices that warn users when they have exceeded safe continuous wake limits (17h and 20h thresholds).
-5.  **Interactive Onboarding Flow:** A simple 3-step setup flow to collect sleep goals, average commute times, and establish baseline schedules.
-6.  **Telemetry & Controls Footer:** A clean bottom panel displaying calculated sleep debt, wake timers, sleep logs, and manual schedule adjustments.
-7.  **Push Notification Simulator:** Test simulated Apple Health-style alerts for caffeine cutoffs, anchor naps, and blue-blocker glasses.
+The following diagram illustrates how user schedules are parsed, computed, and converted into action-ready timelines:
+
+```mermaid
+graph TD
+    A[User Roster Screenshot] -->|Upload to API| B(Gemini 2.5 Flash Parser)
+    B -->|Extracts Shift JSON| C{Circadian Rules Engine}
+    C -->|Calculate Sleep Window| D[Biological Recovery Block]
+    C -->|Calculate Retinal Exposure| E[Circadian Reset / Sunglasses]
+    C -->|Calculate Adenosine half-life| F[Caffeine Cutoff Milestones]
+    C -->|Identify Peak Cognition| G[Upskilling Study Blocks]
+    D & E & F & G --> H[Unified Shift Companion Timeline]
+```
+
+---
+
+## 🌟 Core Features & Circadian Value Mapping
+
+| Feature | Primary Focus | Physiological Purpose | Action Trigger |
+| :--- | :--- | :--- | :--- |
+| **Next Best Action (Hero)** | Chrono-Prioritization | Guides decisions instantly under high cognitive fatigue. | Single-tap `Mark Complete` |
+| **OCR Roster Scanner** | Frictionless Ingestion | Converts confusing shift images (Excel, Kronos) in 3 seconds. | Drag & Drop image upload |
+| **Upcoming Timeline** | Truncated Horizon | Shows the next 3 steps only to avoid calendar overwhelm. | Chronological timeline dot |
+| **Caring Safety Alerts** | Biomarker Defense | Notifies users when continuous awake time hits 17h/20h limits. | Apple Health-style banner |
+| **Sleep Logger** | Telemetry Tracking | Recalculates sleep debt dynamically scaling by quality. | Quality slider (1-10) |
+| **Caffeine Cutoff** | Sleep Latency | Blocks caffeine 6h before sleep to clear adenosine receptors. | Dynamic alarm notification |
 
 ---
 
@@ -23,43 +42,42 @@ Designed around **Duolingo-like clarity, Notion cleanliness, and Apple Health ca
 *   **Styling:** Tailwind CSS v4 & PostCSS (Custom warm Sand & Sage palette)
 *   **AI Integration:** `@google/generative-ai` (Gemini 2.5 Flash & 3.5 Flash)
 *   **Icons:** Lucide React
-*   **Database Foundations:** Supabase & PostgreSQL (Schema defined in `schema.sql`)
+*   **Database:** Supabase & PostgreSQL (Schema defined in `schema.sql`)
 
 ---
 
 ## 🚀 Local Quick-Start Guide
 
-### Step 1: Clone & Install Dependencies
+### 1. Install Dependencies
 Ensure you have Node.js installed, then run:
 ```bash
 npm install
 ```
 
-### Step 2: Set Up Environment Variables
+### 2. Configure Environment
 Create a `.env.local` file in the root of the project:
 ```env
 GEMINI_API_KEY="your-google-gemini-api-key"
 ```
-*(Get a free API key from [Google AI Studio](https://aistudio.google.com/))*
+> [!TIP]
+> You can acquire a free Gemini API key from [Google AI Studio](https://aistudio.google.com/).
 
-### Step 3: Run the Development Server
+### 3. Run the Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) on your device or in browser mobile simulator mode.
+Open [http://localhost:3000](http://localhost:3000) on your device or in desktop browser mobile simulator mode.
 
 ---
 
-## 🧠 Problem-Solving & Decisions Log
-We encountered and solved several complex circadian-math and LLM-parsing bugs during development:
-*   **Midnight-wrapping schedules**
-*   **Nap and commute overlap resolution**
-*   **Gemini 503 Service Overloads**
-*   **Markdown JSON wrapping crashes**
+## 📑 Codebase Navigational Map
 
-Read the complete guide on how we tackled each problem in [PROBLEM_SOLVING.md](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/PROBLEM_SOLVING.md).
+Explore the core algorithms, pages, and schema files:
 
----
+*   **Circadian Rules Algorithm:** [circadianEngine.ts](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/lib/circadianEngine.ts) - Computes optimal sleep/wake cycles.
+*   **Gemini Parser API:** [route.ts](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/app/api/parse-roster/route.ts) - Base64 encodes images and runs Gemini fallback streams.
+*   **Shift Companion Interface:** [page.tsx](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/app/page.tsx) - Renders the mobile onboarding and timelines.
+*   **Database Foundations:** [schema.sql](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/schema.sql) - Production DDL tables and indexes.
 
-## 📜 Database Foundation
-The production-ready database schema is located in [schema.sql](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/schema.sql). Simply run these queries in your Supabase SQL editor to launch the tables and indices.
+> [!IMPORTANT]
+> Read our [PROBLEM_SOLVING.md](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/PROBLEM_SOLVING.md) to understand how we solved major circadian-overlap, date-wrapping, and Gemini API fallback challenges.
