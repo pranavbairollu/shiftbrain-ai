@@ -43,9 +43,9 @@ We implemented a subjective-quality scaling model to compute **Effective Sleep**
 $$\text{Effective Sleep} = \text{Logged Duration} \times \left(0.5 + \frac{\text{Subjective Quality Rating}}{20}\right)$$
 
 > [!NOTE]
-> *   **10/10 Quality (Excellent):** Effective sleep equals $100\%$ of logged duration.
-> *   **5/10 Quality (Interrupted):** Effective sleep scales down to $75\%$ of logged duration.
-> *   **1/10 Quality (Insomnia):** Effective sleep scales down to $55\%$ of logged duration.
+> In the user interface, we simplified the input into a binary question (*"Did you sleep well?"*) to minimize friction:
+> *   **Yes, slept well (Internal 9/10 Quality):** Scales sleep effectiveness to $95\%$ of logged duration.
+> *   **No, restless sleep (Internal 5/10 Quality):** Scales sleep effectiveness down to $75\%$ of logged duration.
 
 This effective sleep value is subtracted from the user's daily baseline (configured during onboarding) to update a rolling sleep debt balance.
 

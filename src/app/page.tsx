@@ -68,7 +68,7 @@ export default function Home() {
   const [logSleepDate, setLogSleepDate] = useState(new Date().toISOString().split("T")[0]);
   const [logSleepTime, setLogSleepTime] = useState("08:30");
   const [logSleepDuration, setLogSleepDuration] = useState("6.5");
-  const [logSleepQuality, setLogSleepQuality] = useState<number>(8); // Default to 8 (Good)
+  const [logSleepQuality, setLogSleepQuality] = useState<number>(9); // Default to 9 (Yes, slept well)
   
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
 
@@ -629,6 +629,26 @@ export default function Home() {
                     onChange={(e) => setOnboardingCommute(parseInt(e.target.value) || 0)}
                     className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-sm text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
                   />
+                  <div className="flex gap-1.5 mt-1">
+                    {[
+                      { label: "30m (PG)", val: 30 },
+                      { label: "60m (BPO Cab)", val: 60 },
+                      { label: "90m (Far Transit)", val: 90 }
+                    ].map(preset => (
+                      <button
+                        key={preset.val}
+                        type="button"
+                        onClick={() => setOnboardingCommute(preset.val)}
+                        className={
+                          onboardingCommute === preset.val
+                            ? "flex-1 py-1.5 rounded-lg text-[9px] font-semibold border transition-all bg-[#1A1D1A] text-white border-[#1A1D1A]"
+                            : "flex-1 py-1.5 rounded-lg text-[9px] font-semibold border transition-all bg-white text-stone-700 border-[#EBEAE5] hover:bg-stone-50"
+                        }
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -661,7 +681,7 @@ export default function Home() {
                 <label className="border border-dashed border-[#C5C4BE] hover:bg-[#FAF9F6] rounded-2xl p-6 text-center cursor-pointer flex flex-col items-center gap-2 transition-colors">
                   <UploadCloud className="h-8 w-8 text-[#5F6660]" />
                   <span className="text-xs font-semibold">{loadingOCR ? "Analyzing image..." : "Upload Roster Screenshot"}</span>
-                  <span className="text-[10px] text-[#5F6660]">Excel files, Kronos photos, or tables</span>
+                  <span className="text-[10px] text-[#5F6660]">Upload your Excel roster crop, portal snip, or WhatsApp schedule image</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -959,20 +979,33 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-[#5F6660] uppercase">Sleep Quality</label>
-              <select
-                value={logSleepQuality}
-                onChange={(e) => setLogSleepQuality(parseInt(e.target.value))}
-                className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs text-[#1A1D1A] focus:outline-none"
-              >
-                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((q) => (
-                  <option key={q} value={q}>
-                    {q} - {q >= 9 ? "Excellent" : q >= 7 ? "Good" : q >= 5 ? "Fair" : "Poor"}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-bold text-[#5F6660] uppercase">Did you sleep well?</label>
+               <div className="flex gap-2">
+                 <button
+                   type="button"
+                   onClick={() => setLogSleepQuality(9)}
+                   className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                     logSleepQuality === 9 
+                       ? "bg-emerald-650 text-white border-emerald-600 bg-emerald-600 shadow-sm" 
+                       : "bg-white text-stone-700 border-[#EBEAE5] hover:bg-stone-50"
+                   }`}
+                 >
+                   👍 Yes, slept well
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => setLogSleepQuality(5)}
+                   className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                     logSleepQuality === 5 
+                       ? "bg-amber-600 text-white border-amber-600 shadow-sm" 
+                       : "bg-white text-stone-700 border-[#EBEAE5] hover:bg-stone-50"
+                   }`}
+                 >
+                   👎 No, restless sleep
+                 </button>
+               </div>
+             </div>
 
             <div className="flex gap-2 mt-2">
               <button
@@ -1309,30 +1342,32 @@ export default function Home() {
           </div>
         )}
 
-        {/* 5. Notification Simulator (Founder Feature Check) */}
-        <div className="border border-[#EBEAE5] rounded-2xl p-4 flex flex-col gap-2.5 bg-stone-50">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-[#5F6660]">Simulation Panel</span>
-          <div className="flex gap-2 justify-between">
-            <button
-              onClick={() => triggerNotificationSim("caffeine")}
-              className="flex-1 bg-white hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
-            >
-              Caffeine Cutoff
-            </button>
-            <button
-              onClick={() => triggerNotificationSim("nap")}
-              className="flex-1 bg-white hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
-            >
-              Anchor Nap
-            </button>
-            <button
-              onClick={() => triggerNotificationSim("light")}
-              className="flex-1 bg-white hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
-            >
-              Blue Blockers
-            </button>
+        {/* 5. Notification Simulator (Founder Feature Check - Dev Only) */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="border border-[#EBEAE5] rounded-2xl p-4 flex flex-col gap-2.5 bg-stone-50">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#5F6660]">Simulation Panel</span>
+            <div className="flex gap-2 justify-between">
+              <button
+                onClick={() => triggerNotificationSim("caffeine")}
+                className="flex-1 bg-[#FAF9F6] hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
+              >
+                Caffeine Cutoff
+              </button>
+              <button
+                onClick={() => triggerNotificationSim("nap")}
+                className="flex-1 bg-[#FAF9F6] hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
+              >
+                Anchor Nap
+              </button>
+              <button
+                onClick={() => triggerNotificationSim("light")}
+                className="flex-1 bg-[#FAF9F6] hover:bg-stone-100 border border-[#EBEAE5] text-stone-700 py-1.5 rounded-lg text-[9px] font-bold"
+              >
+                Blue Blockers
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Technical resets for development testing */}
         <div className="flex justify-between items-center text-[10px] text-stone-400 py-2 border-t border-[#EBEAE5]">
