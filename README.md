@@ -1,4 +1,8 @@
 # 🧠 ShiftBrain
+<p align="center">
+  <img src="public/logo.png" alt="ShiftBrain Logo" width="120" height="120" style="border-radius: 24px;" />
+</p>
+
 ### The Life Operating System & Companion for Shift Workers
 
 > [!NOTE]
@@ -74,10 +78,10 @@ Open [http://localhost:3000](http://localhost:3000) on your device or in desktop
 
 Explore the core algorithms, pages, and schema files:
 
-*   **Circadian Rules Algorithm:** [circadianEngine.ts](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/lib/circadianEngine.ts) - Computes optimal sleep/wake cycles.
-*   **Gemini Parser API:** [route.ts](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/app/api/parse-roster/route.ts) - Base64 encodes images and runs Gemini fallback streams.
-*   **Shift Companion Interface:** [page.tsx](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/src/app/page.tsx) - Renders the mobile onboarding and timelines.
-*   **Database Foundations:** [schema.sql](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/schema.sql) - Production DDL tables and indexes.
+*   **Circadian Rules Algorithm:** [circadianEngine.ts](src/lib/circadianEngine.ts) - Computes optimal sleep/wake cycles.
+*   **Gemini Parser API:** [route.ts](src/app/api/parse-roster/route.ts) - Base64 encodes images and runs Gemini fallback streams.
+*   **Shift Companion Interface:** [page.tsx](src/app/page.tsx) - Renders the mobile onboarding and timelines.
+*   **Database Foundations:** [schema.sql](schema.sql) - Production DDL tables and indexes.
 
 > [!IMPORTANT]
-> Read our [PROBLEM_SOLVING.md](file:///c:/Users/Pranav%20Bairollu/WebProjects/ShiftBrain%20AI/PROBLEM_SOLVING.md) to understand how we solved major circadian-overlap, date-wrapping, and Gemini API fallback challenges.
+> Read our [PROBLEM_SOLVING.md](PROBLEM_SOLVING.md) to understand how we solved major circadian-overlap, date-wrapping, and Gemini API fallback challenges.

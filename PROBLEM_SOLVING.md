@@ -1,4 +1,7 @@
 # 🧠 ShiftBrain: Scientific & Algorithmic Decision Log
+<p align="center">
+  <img src="public/logo.png" alt="ShiftBrain Logo" width="120" height="120" style="border-radius: 24px;" />
+</p>
 
 This log documents the somnology research, mathematical formulas, and biological decision logic behind ShiftBrain's adaptive engine. It details how the product resolves critical circadian hurdles that traditional calendar and wellness applications ignore.
 
@@ -123,3 +126,23 @@ Our algorithms rely on established circadian and somnology research:
 1.  **Sleep Debt & Impairment:** Studies by *Dawson & Reid (1997)* and *Williamson & Feyer (2000)* established that 17-19 hours of continuous wakefulness produces cognitive degradation equivalent to a BAC of 0.05%, and 20-24 hours matches 0.10% BAC.
 2.  **Light and Melatonin Suppression:** Research on intrinsically photosensitive retinal ganglion cells (ipRGCs) shows peak sensitivity to blue light (460-480nm). Shielding eyes from morning daylight is proven to mitigate daytime sleep onset insomnia.
 3.  **Prophylactic Naps:** Clinical trials on emergency medicine residents and aviation pilots confirm that a pre-shift anchor nap of 30-40 minutes significantly reduces lapses in attention during overnight duties.
+
+---
+
+## 8. Rest Day Optimization: Guilt-Free Rest vs. Progressive Upskilling
+
+### The Biological & Psychological Hurdle
+A week off is a double-edged sword for shift workers:
+1.  **Circadian Jetlag:** Shifting sleep times on off-days to match natural daytime schedules causes acute circadian misalignment ("social jetlag"), leading to insomnia and high fatigue when returning to night shifts.
+2.  **Productivity Guilt:** Tired workers who attempt to optimize their rest days with generic task managers or numerical "Day Scores" (e.g., `60/100`) experience anxiety upon missing goals, which raises cortisol and degrades sleep latency.
+3.  **Upskilling Trade-offs:** While baseline recovery is vital, ambitious shift workers need their few off-days to build portfolios, prep healthy meals, or handle life administration.
+
+### Our Solution
+We implemented structured **Week Off Focus Modes** coupled with an **Outcome-Based Wins Ledger**:
+*   **Five Specialized Day Modes:** The circadian engine generates distinct, custom timelines mapped to specific objectives:
+    *   🛋️ **Recovery:** Maximizes sleep debt clearance, decompression, and a 9h recovery sleep.
+    *   🚀 **Growth:** Schedules dual 2-hour deep coding blocks during peak biological focus windows.
+    *   🏋️ **Fitness:** Blocks out meal preparation, hydration resets, and strength training.
+    *   🍕 **Social:** Allocates daylight relationship time and digital-free evening dinners.
+    *   🧹 **Reset:** Plans workspace decluttering, budget admin, and next week's schedule planning.
+*   **Guilt-Free Outcomes Wins Ledger:** We completely removed abstract numerical scoring. Toggled checklist tasks are translated into positive real-world wins (e.g., *“Completed deep upskilling coding sprint”* or *“Banked recovery sleep & restored energy”*). This builds a positive "Personal Life Resume" without anxiety.

@@ -571,9 +571,7 @@ export default function Home() {
 
           {onboardingStep === 1 && (
             <div className="flex flex-col gap-5 text-center py-4">
-              <div className="mx-auto w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100">
-                <Sparkles className="h-6 w-6 text-emerald-600" />
-              </div>
+              <img src="/logo.png" alt="ShiftBrain Logo" className="mx-auto w-16 h-16 object-contain rounded-2xl shadow-sm border border-[#EBEAE5]" />
               <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-bold font-display tracking-tight">Align your biology to your work.</h1>
                 <p className="text-sm text-[#5F6660] leading-relaxed">
@@ -711,8 +709,8 @@ export default function Home() {
       
       {/* Brand Header */}
       <header className="w-full max-w-sm flex justify-between items-center mb-5 px-1">
-        <div className="flex items-center gap-1.5">
-          <Clock className="h-4.5 w-4.5 text-emerald-600" />
+        <div className="flex items-center gap-1.5 animate-fade-in">
+          <img src="/logo.png" alt="ShiftBrain Logo" className="h-6 w-6 object-contain rounded-lg shadow-sm border border-[#EBEAE5] bg-[#1A1D1A]" />
           <span className="font-bold text-lg font-display tracking-tight">
             ShiftBrain
           </span>
