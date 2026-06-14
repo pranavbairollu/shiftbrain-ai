@@ -4,6 +4,8 @@ export interface ParsedShift {
   end_time: string; // HH:MM
   shift_name: string;
   commute_mins?: number; // Optional commute transit duration
+  is_off_day?: boolean; // Mark shift as a rest/week off day
+  off_day_mode?: "recovery" | "growth" | "fitness" | "social" | "reset";
 }
 
 export interface SurvivalItem {
@@ -38,10 +40,387 @@ function formatTime(date: Date): string {
   });
 }
 
+function generateOffDayPlan(dateStr: string, mode: "recovery" | "growth" | "fitness" | "social" | "reset"): SurvivalItem[] {
+  const items: SurvivalItem[] = [];
+  
+  // Helper to parse target time on the off day date
+  const timeAt = (timeStr: string): Date => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
+  switch (mode) {
+    case "recovery":
+      items.push({
+        id: `off-wake-${dateStr}`,
+        type: "wake",
+        time_display: "08:00 AM",
+        time_sort: timeAt("08:00"),
+        title: "Wake & Bright Light Reset",
+        description: "Expose your eyes to 15-30 mins of bright morning sunlight immediately. This resets your cortisol curve.",
+        tag: "Circadian Reset"
+      });
+      items.push({
+        id: `off-light-${dateStr}`,
+        type: "light",
+        time_display: "09:30 AM",
+        time_sort: timeAt("09:30"),
+        title: "Light Stretching & Yoga",
+        description: "Spend 15 mins on light physical alignment. Release physical tension accumulated from long shift sitting.",
+        tag: "Decompression"
+      });
+      items.push({
+        id: `off-recharge-${dateStr}`,
+        type: "focus",
+        time_display: "11:00 AM",
+        time_sort: timeAt("11:00"),
+        title: "Quiet Mindfulness / Reading",
+        description: "Read fiction, meditate, or rest with no active stimulation. Let your brain wander and recover.",
+        tag: "Cognitive Recovery"
+      });
+      items.push({
+        id: `off-walk-${dateStr}`,
+        type: "light",
+        time_display: "03:00 PM",
+        time_sort: timeAt("15:00"),
+        title: "Zone 1 Nature Recovery Walk",
+        description: "A gentle 30-minute walk in natural afternoon light to maintain aerobic baseline and reduce cortisol.",
+        tag: "Active Recovery"
+      });
+      items.push({
+        id: `off-caffeine-cutoff-${dateStr}`,
+        type: "caffeine",
+        time_display: "05:00 PM",
+        time_sort: timeAt("17:00"),
+        title: "Caffeine Cutoff Milestone",
+        description: "Stop all caffeine now. Adenosine clearance is vital tonight to maximize deep recovery sleep.",
+        tag: "Sleep Protection"
+      });
+      items.push({
+        id: `off-fasting-${dateStr}`,
+        type: "caffeine",
+        time_display: "08:00 PM - 11:00 PM",
+        time_sort: timeAt("20:00"),
+        title: "Digestive Fasting Window",
+        description: "Begin 3-hour pre-sleep fasting window. Keeping digestion quiet ensures maximum sleep quality.",
+        tag: "Metabolic Health"
+      });
+      items.push({
+        id: `off-sleep-${dateStr}`,
+        type: "sleep",
+        time_display: "11:00 PM - 08:00 AM",
+        time_sort: timeAt("23:00"),
+        title: "Deep Sleep Debt Recovery",
+        description: "Aim for a full 9-hour recovery sleep window in a cold, pitch-black room. Restore your cellular homeostasis.",
+        tag: "Biological Recovery"
+      });
+      break;
+
+    case "growth":
+      items.push({
+        id: `off-wake-${dateStr}`,
+        type: "wake",
+        time_display: "07:30 AM",
+        time_sort: timeAt("07:30"),
+        title: "Wake & Bright Light Reset",
+        description: "Expose your eyes to sunlight. Anchor your day early for peak daytime cognitive focus.",
+        tag: "Circadian Reset"
+      });
+      items.push({
+        id: `off-caffeine-intake-${dateStr}`,
+        type: "caffeine",
+        time_display: "08:30 AM",
+        time_sort: timeAt("08:30"),
+        title: "Strategic Morning Caffeine",
+        description: "Enjoy clean black coffee or green tea to prime adenosine pathways for focused deep work.",
+        tag: "Focus Fuel"
+      });
+      items.push({
+        id: `off-sprint1-${dateStr}`,
+        type: "focus",
+        time_display: "09:00 AM - 11:00 AM",
+        time_sort: timeAt("09:00"),
+        title: "Deep Upskilling Sprint 1 (Coding)",
+        description: "2-hour code sprint. Put phone on DND and build out React, TypeScript, or system architecture.",
+        tag: "Upskilling Block"
+      });
+      items.push({
+        id: `off-walk-${dateStr}`,
+        type: "light",
+        time_display: "11:30 AM",
+        time_sort: timeAt("11:30"),
+        title: "Cognitive Recovery Walk",
+        description: "A brisk 20-minute walk to clear metabolic fatigue and boost neural plasticity before session 2.",
+        tag: "Active Rest"
+      });
+      items.push({
+        id: `off-sprint2-${dateStr}`,
+        type: "focus",
+        time_display: "02:00 PM - 03:30 PM",
+        time_sort: timeAt("14:00"),
+        title: "Deep Upskilling Sprint 2 (Portfolio)",
+        description: "90-minute building block. Integrate APIs, polish CSS transitions, or refactor repository code.",
+        tag: "Portfolio Build"
+      });
+      items.push({
+        id: `off-caffeine-cutoff-${dateStr}`,
+        type: "caffeine",
+        time_display: "04:00 PM",
+        time_sort: timeAt("16:00"),
+        title: "Caffeine Cutoff Milestone",
+        description: "Cut off caffeine to prepare for early restorative sleep. Consolidate what you studied today.",
+        tag: "Sleep Protection"
+      });
+      items.push({
+        id: `off-admin-${dateStr}`,
+        type: "focus",
+        time_display: "05:00 PM - 06:00 PM",
+        time_sort: timeAt("17:00"),
+        title: "Career Admin & GitHub Sync",
+        description: "60-minute cleanup. Sync code changes to GitHub, update resume, or check job descriptions.",
+        tag: "Career Strategy"
+      });
+      items.push({
+        id: `off-fasting-${dateStr}`,
+        type: "caffeine",
+        time_display: "08:00 PM - 11:00 PM",
+        time_sort: timeAt("20:00"),
+        title: "Digestive Fasting Window",
+        description: "3-hour fasting window to keep sleep undisturbed by digestion.",
+        tag: "Metabolic Health"
+      });
+      items.push({
+        id: `off-sleep-${dateStr}`,
+        type: "sleep",
+        time_display: "11:00 PM - 07:30 AM",
+        time_sort: timeAt("23:00"),
+        title: "Restorative Sleep Window",
+        description: "Deep, undisturbed sleep is when your brain commits studied coding concepts to long-term memory.",
+        tag: "Biological Recovery"
+      });
+      break;
+
+    case "fitness":
+      items.push({
+        id: `off-wake-${dateStr}`,
+        type: "wake",
+        time_display: "07:00 AM",
+        time_sort: timeAt("07:00"),
+        title: "Wake & Hydrate Reset",
+        description: "Drink 500ml water with sea salt and get immediate sunlight to jumpstart metabolism.",
+        tag: "Circadian Reset"
+      });
+      items.push({
+        id: `off-prep-${dateStr}`,
+        type: "focus",
+        time_display: "08:00 AM - 09:00 AM",
+        time_sort: timeAt("08:00"),
+        title: "Fueling & Nutrition Meal Prep",
+        description: "Prepare high-protein, clean meals for the upcoming shift week. Protects against night shift junk food cravings.",
+        tag: "Meal Prep"
+      });
+      items.push({
+        id: `off-gym-${dateStr}`,
+        type: "light",
+        time_display: "10:00 AM - 11:30 AM",
+        time_sort: timeAt("10:00"),
+        title: "Deep Gym / Strength Session",
+        description: "90-minute heavy resistance or endurance session. Stimulates hypertrophy, joint stability, and cardiovascular capacity.",
+        tag: "Strength & Cardio"
+      });
+      items.push({
+        id: `off-caffeine-cutoff-${dateStr}`,
+        type: "caffeine",
+        time_display: "03:30 PM",
+        time_sort: timeAt("15:30"),
+        title: "Caffeine Cutoff Milestone",
+        description: "Cut off caffeine to prevent central nervous system over-arousal. Deep sleep is when muscle recovery occurs.",
+        tag: "Sleep Protection"
+      });
+      items.push({
+        id: `off-mobility-${dateStr}`,
+        type: "light",
+        time_display: "04:30 PM - 05:00 PM",
+        time_sort: timeAt("16:30"),
+        title: "Active Mobility Walk",
+        description: "30-minute zone 1 walk to clear lactic acid, promote blood flow, and enhance recovery.",
+        tag: "Active Recovery"
+      });
+      items.push({
+        id: `off-fasting-${dateStr}`,
+        type: "caffeine",
+        time_display: "07:30 PM - 10:30 PM",
+        time_sort: timeAt("19:30"),
+        title: "Digestive Fasting Window",
+        description: "3-hour pre-sleep fasting window. Fasting before sleep triggers autophagy and tissue repair.",
+        tag: "Metabolic Health"
+      });
+      items.push({
+        id: `off-sleep-${dateStr}`,
+        type: "sleep",
+        time_display: "10:30 PM - 07:00 AM",
+        time_sort: timeAt("22:30"),
+        title: "Deep Recovery Sleep Window",
+        description: "Target a solid 8.5 hours. Growth hormone peaks during slow-wave deep sleep to rebuild muscle fibers.",
+        tag: "Biological Recovery"
+      });
+      break;
+
+    case "social":
+      items.push({
+        id: `off-wake-${dateStr}`,
+        type: "wake",
+        time_display: "08:00 AM",
+        time_sort: timeAt("08:00"),
+        title: "Wake & Bright Light Reset",
+        description: "Sunlight exposure to secure mood, dopamine synthesis, and daytime alertness.",
+        tag: "Circadian Reset"
+      });
+      items.push({
+        id: `off-streak-${dateStr}`,
+        type: "focus",
+        time_display: "09:30 AM - 10:15 AM",
+        time_sort: timeAt("09:30"),
+        title: "Micro Study Sprint (Streak Maintenance)",
+        description: "Quick 45-minute code session to keep your progression streak alive without dominating your social day.",
+        tag: "Upskilling Block"
+      });
+      items.push({
+        id: `off-outing-${dateStr}`,
+        type: "light",
+        time_display: "11:30 AM - 02:30 PM",
+        time_sort: timeAt("11:30"),
+        title: "Social Connection / Outing",
+        description: "3-hour block to catch up with friends or family. Engage in active listening and step outside BPO shop-talk.",
+        tag: "Relationships"
+      });
+      items.push({
+        id: `off-caffeine-cutoff-${dateStr}`,
+        type: "caffeine",
+        time_display: "04:30 PM",
+        time_sort: timeAt("16:30"),
+        title: "Caffeine Cutoff Milestone",
+        description: "No coffee or tea. Stick to water/juices during late afternoon hangs.",
+        tag: "Sleep Protection"
+      });
+      items.push({
+        id: `off-dinner-${dateStr}`,
+        type: "light",
+        time_display: "06:30 PM - 08:30 PM",
+        time_sort: timeAt("18:30"),
+        title: "Dinner & Digital Disconnect",
+        description: "Enjoy dinner with family, a partner, or friends. Disconnect from digital messaging and be present.",
+        tag: "Social Connection"
+      });
+      items.push({
+        id: `off-fasting-${dateStr}`,
+        type: "caffeine",
+        time_display: "08:30 PM - 11:30 PM",
+        time_sort: timeAt("20:30"),
+        title: "Digestive Fasting Window",
+        description: "Fasting window before sleep to prevent indigestion or restless night cycles.",
+        tag: "Metabolic Health"
+      });
+      items.push({
+        id: `off-sleep-${dateStr}`,
+        type: "sleep",
+        time_display: "11:30 PM - 08:00 AM",
+        time_sort: timeAt("23:30"),
+        title: "Restful Night Sleep Window",
+        description: "Full night recovery sleep to feel fully connected and refreshed tomorrow.",
+        tag: "Biological Recovery"
+      });
+      break;
+
+    case "reset":
+      items.push({
+        id: `off-wake-${dateStr}`,
+        type: "wake",
+        time_display: "07:30 AM",
+        time_sort: timeAt("07:30"),
+        title: "Wake & Bright Light Reset",
+        description: "Sunlight exposure to establish circadian baseline.",
+        tag: "Circadian Reset"
+      });
+      items.push({
+        id: `off-clean-${dateStr}`,
+        type: "focus",
+        time_display: "09:00 AM - 10:30 AM",
+        time_sort: timeAt("09:00"),
+        title: "Workspace Clean & Declutter",
+        description: "90-minute cleaning block. Organize desk, laundry, and clean room. Clear physical space clears mental fog.",
+        tag: "Organize Space"
+      });
+      items.push({
+        id: `off-admin-${dateStr}`,
+        type: "focus",
+        time_display: "11:30 AM - 12:30 PM",
+        time_sort: timeAt("11:30"),
+        title: "Financial & Personal Admin Review",
+        description: "60-minute admin session. Pay bills, log expenses, clean up personal inbox, and organize documents.",
+        tag: "Life Admin"
+      });
+      items.push({
+        id: `off-errands-${dateStr}`,
+        type: "light",
+        time_display: "03:00 PM - 04:00 PM",
+        time_sort: timeAt("15:00"),
+        title: "Errands Run & Store Restock",
+        description: "Go outdoors. Pick up healthy groceries, toiletries, and cleaning supplies for the upcoming shift cycle.",
+        tag: "Weekly Prep"
+      });
+      items.push({
+        id: `off-caffeine-cutoff-${dateStr}`,
+        type: "caffeine",
+        time_display: "04:30 PM",
+        time_sort: timeAt("16:30"),
+        title: "Caffeine Cutoff Milestone",
+        description: "Ensure quiet sleep tonight by switching to decaf/water.",
+        tag: "Sleep Protection"
+      });
+      items.push({
+        id: `off-plan-${dateStr}`,
+        type: "focus",
+        time_display: "05:30 PM - 06:00 PM",
+        time_sort: timeAt("17:30"),
+        title: "Roster Planning & Shift Prep",
+        description: "30-minute planning session. Audit next week's schedule, set calendar alerts, and coordinate focus blocks.",
+        tag: "Shift Readiness"
+      });
+      items.push({
+        id: `off-fasting-${dateStr}`,
+        type: "caffeine",
+        time_display: "08:00 PM - 11:00 PM",
+        time_sort: timeAt("20:00"),
+        title: "Digestive Fasting Window",
+        description: "3-hour fasting window to maximize slow-wave deep sleep quality.",
+        tag: "Metabolic Health"
+      });
+      items.push({
+        id: `off-sleep-${dateStr}`,
+        type: "sleep",
+        time_display: "11:00 PM - 07:30 AM",
+        time_sort: timeAt("23:00"),
+        title: "Standard Night Sleep",
+        description: "Standard night recovery block to head into the new work week with full biological battery.",
+        tag: "Biological Recovery"
+      });
+      break;
+  }
+  return items;
+}
+
 /**
  * Calculates a survival checklist based on a parsed shift.
  */
 export function generateSurvivalPlan(shift: ParsedShift): SurvivalItem[] {
+  const isOffDay = shift.is_off_day || /off|rest|wo|holiday|vacation|leave/i.test(shift.shift_name);
+  if (isOffDay) {
+    const mode = shift.off_day_mode || "recovery";
+    return generateOffDayPlan(shift.date, mode);
+  }
+
   const items: SurvivalItem[] = [];
   
   const shiftStart = parseDateTime(shift.date, shift.start_time);

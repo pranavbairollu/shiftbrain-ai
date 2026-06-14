@@ -60,6 +60,8 @@ export default function Home() {
   const [shiftStartInput, setShiftStartInput] = useState(DEFAULT_SHIFT.start_time);
   const [shiftEndInput, setShiftEndInput] = useState(DEFAULT_SHIFT.end_time);
   const [commuteMinsInput, setCommuteMinsInput] = useState<number>(DEFAULT_SHIFT.commute_mins || 60);
+  const [isOffDay, setIsOffDay] = useState<boolean>(false);
+  const [offDayMode, setOffDayMode] = useState<"recovery" | "growth" | "fitness" | "social" | "reset">("recovery");
 
   // Sleep Logging State
   const [showSleepLogger, setShowSleepLogger] = useState(false);
@@ -102,11 +104,13 @@ export default function Home() {
       try {
         const parsed = JSON.parse(savedShift);
         setActiveShift(parsed);
-        setShiftNameInput(parsed.shift_name);
-        setShiftDateInput(parsed.date);
-        setShiftStartInput(parsed.start_time);
-        setShiftEndInput(parsed.end_time);
-        setCommuteMinsInput(parsed.commute_mins || 60);
+        setShiftNameInput(parsed.shift_name || DEFAULT_SHIFT.shift_name);
+        setShiftDateInput(parsed.date || DEFAULT_SHIFT.date);
+        setShiftStartInput(parsed.start_time || DEFAULT_SHIFT.start_time);
+        setShiftEndInput(parsed.end_time || DEFAULT_SHIFT.end_time);
+        setCommuteMinsInput(parsed.commute_mins !== undefined ? parsed.commute_mins : 60);
+        setIsOffDay(!!parsed.is_off_day);
+        setOffDayMode(parsed.off_day_mode || "recovery");
       } catch (e) {
         setActiveShift(DEFAULT_SHIFT);
       }
@@ -222,8 +226,12 @@ export default function Home() {
   }, [sleepLogs, completedActions, activeShift, onboardingSleepGoal]);
 
   // Dynamic Companion Greeting helper (Concept C)
-  const getCompanionGreeting = () => {
+    const getCompanionGreeting = () => {
     if (!activeShift) return "Set a work schedule to generate your plan.";
+    if (activeShift.is_off_day) {
+      const capitalizedMode = activeShift.off_day_mode ? activeShift.off_day_mode.charAt(0).toUpperCase() + activeShift.off_day_mode.slice(1) : "Recovery";
+      return `Today is your off day, focused on ${capitalizedMode}. Zero shifts. Focus on yourself.`;
+    }
     
     const now = new Date();
     const shiftStart = new Date(`${activeShift.date}T${activeShift.start_time}`);
@@ -257,17 +265,19 @@ export default function Home() {
   // Form Handlers
   const handleUpdateShift = (e: React.FormEvent) => {
     e.preventDefault();
-    if (shiftStartInput === shiftEndInput) {
+    if (!isOffDay && shiftStartInput === shiftEndInput) {
       setFormError("Shift start and end times cannot be identical.");
       return;
     }
     setFormError(null);
     const updated = {
       date: shiftDateInput,
-      start_time: shiftStartInput,
-      end_time: shiftEndInput,
-      shift_name: shiftNameInput,
-      commute_mins: commuteMinsInput
+      start_time: isOffDay ? "08:00" : shiftStartInput,
+      end_time: isOffDay ? "08:00" : shiftEndInput,
+      shift_name: isOffDay ? `Week Off (${offDayMode.toUpperCase()})` : shiftNameInput,
+      commute_mins: isOffDay ? 0 : commuteMinsInput,
+      is_off_day: isOffDay,
+      off_day_mode: offDayMode
     };
     localStorage.setItem("sb_user_name", userNameInput);
     setUserName(userNameInput);
@@ -394,22 +404,46 @@ export default function Home() {
   const getDecisionPlan = (items: SurvivalItem[]) => {
     return items.map(item => {
       let why = "";
-      if (item.type === "sleep" && item.title.includes("Core")) {
-        why = `Helps clear your accumulated ${sleepDebt.toFixed(1)}-hour sleep debt.`;
-      } else if (item.type === "sleep" && item.title.includes("Nap")) {
-        why = "Clears adenosine build-up to prevent you from crashing at 2:00 AM.";
-      } else if (item.type === "caffeine") {
-        why = "Protects melatonin receptor pathways so you can fall asleep quickly in the morning.";
-      } else if (item.type === "light" && item.title.includes("Blue")) {
-        why = "Morning sunlight triggers wake hormones (cortisol) and blocks melatonin.";
-      } else if (item.type === "light" && item.title.includes("Alertness")) {
-        why = "Bright light signals the brain to wake up and shakes off pre-shift grogginess.";
-      } else if (item.type === "wake") {
-        why = "Halts melatonin production and sets your circadian starting point.";
-      } else if (item.type === "focus") {
-        why = "Your brain has the highest cognitive capacity right now—perfect for code upskilling.";
+      if (activeShift?.is_off_day) {
+        if (item.title.includes("Sleep Debt Recovery") || item.title.includes("Restorative Sleep")) {
+          why = `Compensates for sleep debt and consolidates cellular restoration. Currently clearing ${sleepDebt.toFixed(1)}h of deficit.`;
+        } else if (item.title.includes("Sprint 1") || item.title.includes("Sprint 2")) {
+          why = "Leverages rest periods for deep mental work to accelerate your software career progression.";
+        } else if (item.title.includes("Mindfulness") || item.title.includes("Recharge")) {
+          why = "Quiets down the amygdala and reduces neurological stress from shift switching.";
+        } else if (item.title.includes("Gym") || item.title.includes("Strength")) {
+          why = "Stimulates muscular development, oxygen flow, and endocrine health after days of static shift desk work.";
+        } else if (item.title.includes("Meal Prep")) {
+          why = "Secures clean nutrition for the upcoming work week, preventing fatigue-induced night bingeing.";
+        } else if (item.title.includes("Outing") || item.title.includes("Social")) {
+          why = "Nurtures human bonds and emotional well-being outside the workplace BPO bubble.";
+        } else if (item.title.includes("Clean") || item.title.includes("Declutter") || item.title.includes("Workspace")) {
+          why = "Restores neatness to your physical workspace, which directly calms the pre-frontal cortex.";
+        } else if (item.title.includes("Admin") || item.title.includes("Planning")) {
+          why = "Unclutters schedule anxiety and prevents billing or calendar overlaps next week.";
+        } else if (item.title.includes("Walk")) {
+          why = "Exposes eyes to sunset sky cues to naturalize your nighttime wind-down.";
+        } else {
+          why = "Re-aligns your physiological baseline without BPO/shift stress.";
+        }
       } else {
-        why = "Eases your body's circadian transition between shifts.";
+        if (item.type === "sleep" && item.title.includes("Core")) {
+          why = `Helps clear your accumulated ${sleepDebt.toFixed(1)}-hour sleep debt.`;
+        } else if (item.type === "sleep" && item.title.includes("Nap")) {
+          why = "Clears adenosine build-up to prevent you from crashing at 2:00 AM.";
+        } else if (item.type === "caffeine") {
+          why = "Protects melatonin receptor pathways so you can fall asleep quickly in the morning.";
+        } else if (item.type === "light" && item.title.includes("Blue")) {
+          why = "Morning sunlight triggers wake hormones (cortisol) and blocks melatonin.";
+        } else if (item.type === "light" && item.title.includes("Alertness")) {
+          why = "Bright light signals the brain to wake up and shakes off pre-shift grogginess.";
+        } else if (item.type === "wake") {
+          why = "Halts melatonin production and sets your circadian starting point.";
+        } else if (item.type === "focus") {
+          why = "Your brain has the highest cognitive capacity right now—perfect for code upskilling.";
+        } else {
+          why = "Eases your body's circadian transition between shifts.";
+        }
       }
       
       return {
@@ -431,7 +465,17 @@ export default function Home() {
     : decisionPlan.slice(0, 3);
 
   // Icon Mapper
-  const getIcon = (type: string) => {
+  const getIcon = (type: string, title?: string) => {
+    const titleLower = title?.toLowerCase() || "";
+    if (titleLower.includes("gym") || titleLower.includes("strength") || titleLower.includes("workout")) {
+      return <Zap className="h-4 w-4 text-orange-500" />;
+    }
+    if (titleLower.includes("clean") || titleLower.includes("declutter") || titleLower.includes("workspace")) {
+      return <Sparkles className="h-4 w-4 text-cyan-500" />;
+    }
+    if (titleLower.includes("social") || titleLower.includes("relationships") || titleLower.includes("outing") || titleLower.includes("dinner") || titleLower.includes("family")) {
+      return <HelpCircle className="h-4 w-4 text-rose-500" />;
+    }
     switch (type) {
       case "sleep":
         return <Moon className="h-4 w-4 text-indigo-500" />;
@@ -733,65 +777,122 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-[#5F6660] uppercase">Shift Name / Role</label>
+              <label className="text-[10px] font-bold text-[#5F6660] uppercase">Shift Type</label>
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsOffDay(false)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    !isOffDay 
+                      ? "bg-[#1A1D1A] text-white border-[#1A1D1A]" 
+                      : "bg-white text-stone-700 border-[#EBEAE5] hover:bg-stone-50"
+                  }`}
+                >
+                  Working Day
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOffDay(true)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    isOffDay 
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" 
+                      : "bg-white text-stone-700 border-[#EBEAE5] hover:bg-stone-50"
+                  }`}
+                >
+                  Day Off / Week Off
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-[#5F6660] uppercase">Date</label>
               <input
-                type="text"
+                type="date"
                 required
-                value={shiftNameInput}
-                onChange={(e) => setShiftNameInput(e.target.value)}
-                className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
+                value={shiftDateInput}
+                onChange={(e) => setShiftDateInput(e.target.value)}
+                className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#5F6660] uppercase">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={shiftDateInput}
-                  onChange={(e) => setShiftDateInput(e.target.value)}
-                  className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
-                />
-              </div>
+            {!isOffDay ? (
+              <div className="flex flex-col gap-4 animate-fade-in">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-[#5F6660] uppercase">Shift Name / Role</label>
+                  <input
+                    type="text"
+                    required
+                    value={shiftNameInput}
+                    onChange={(e) => setShiftNameInput(e.target.value)}
+                    className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#5F6660] uppercase">Commute (mins)</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  max="240"
-                  value={commuteMinsInput}
-                  onChange={(e) => setCommuteMinsInput(parseInt(e.target.value) || 0)}
-                  className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1 col-span-1">
+                    <label className="text-[10px] font-bold text-[#5F6660] uppercase">Commute (m)</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      max="240"
+                      value={commuteMinsInput}
+                      onChange={(e) => setCommuteMinsInput(parseInt(e.target.value) || 0)}
+                      className="bg-white border border-[#EBEAE5] rounded-xl px-2 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#5F6660] uppercase">Start Time</label>
-                <input
-                  type="time"
-                  required
-                  value={shiftStartInput}
-                  onChange={(e) => setShiftStartInput(e.target.value)}
-                  className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
-                />
-              </div>
+                  <div className="flex flex-col gap-1 col-span-1">
+                    <label className="text-[10px] font-bold text-[#5F6660] uppercase">Start</label>
+                    <input
+                      type="time"
+                      required
+                      value={shiftStartInput}
+                      onChange={(e) => setShiftStartInput(e.target.value)}
+                      className="bg-white border border-[#EBEAE5] rounded-xl px-2 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
+                    />
+                  </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-[#5F6660] uppercase">End Time</label>
-                <input
-                  type="time"
-                  required
-                  value={shiftEndInput}
-                  onChange={(e) => setShiftEndInput(e.target.value)}
-                  className="bg-white border border-[#EBEAE5] rounded-xl px-3 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
-                />
+                  <div className="flex flex-col gap-1 col-span-1">
+                    <label className="text-[10px] font-bold text-[#5F6660] uppercase">End</label>
+                    <input
+                      type="time"
+                      required
+                      value={shiftEndInput}
+                      onChange={(e) => setShiftEndInput(e.target.value)}
+                      className="bg-white border border-[#EBEAE5] rounded-xl px-2 py-2 text-xs font-mono text-[#1A1D1A] focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col gap-1.5 animate-fade-in">
+                <label className="text-[10px] font-bold text-[#5F6660] uppercase">Select Rest Day Focus Mode</label>
+                <div className="grid grid-cols-2 gap-2 mt-0.5">
+                  {[
+                    { mode: "recovery", label: "🛋️ Recovery", desc: "Sleep debt paydown & decompression", span: "col-span-2" },
+                    { mode: "growth", label: "🚀 Growth", desc: "Deep coding sprints & portfolio building", span: "col-span-1" },
+                    { mode: "fitness", label: "🏋️ Fitness", desc: "Meal prep & gym workout sessions", span: "col-span-1" },
+                    { mode: "social", label: "🍕 Social", desc: "Connect with friends and family", span: "col-span-1" },
+                    { mode: "reset", label: "🧹 Reset", desc: "Clean room & administrative chores", span: "col-span-1" }
+                  ].map(item => (
+                    <button
+                      key={item.mode}
+                      type="button"
+                      onClick={() => setOffDayMode(item.mode as any)}
+                      className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all ${item.span} ${
+                        offDayMode === item.mode
+                          ? "border-emerald-600 bg-emerald-50/50 ring-1 ring-emerald-600/35"
+                          : "border-[#EBEAE5] bg-white hover:bg-stone-50"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-[#1A1D1A]">{item.label}</span>
+                      <span className="text-[9px] text-[#5F6660] leading-snug">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {formError && (
               <p className="text-[10px] text-red-500 font-semibold">{formError}</p>
@@ -1023,7 +1124,7 @@ export default function Home() {
                       <div className={`h-4 w-4 rounded-full border bg-white flex items-center justify-center transition-colors ${
                         isNextAction ? "border-emerald-600 text-emerald-600" : "border-[#C5C4BE] text-stone-400"
                       }`}>
-                        {getIcon(item.type)}
+                        {getIcon(item.type, item.title)}
                       </div>
                     )}
                   </div>
@@ -1055,54 +1156,160 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 4. Status & Controls Footer Panel (Apple-Notion Simplicity) */}
-        <div className="action-card p-4 flex flex-col gap-3.5 bg-white mt-2">
-          <div className="flex justify-between items-center border-b border-[#EBEAE5] pb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6660]">Telemetry & Controls</span>
-            <span className="text-[9px] text-stone-400">Checked naps subtract 4.0h</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-[#5F6660] uppercase font-bold tracking-wider">Sleep Deficit</span>
-              <span className="font-semibold text-stone-900 mt-0.5">
-                {sleepDebt > 0 ? `${sleepDebt.toFixed(1)} hours debt` : "Fully Calibrated"}
-              </span>
-              <span className="text-[9px] text-[#5F6660] leading-snug mt-0.5">
-                {sleepDebt > 0 
-                  ? `Focus is slightly slower today.` 
-                  : "Ideal focus capacity."}
+        {/* 4. Status & Controls Footer Panel (Apple-Notion Simplicity / Wins Ledger) */}
+        {activeShift?.is_off_day ? (
+          <div className="action-card p-4 flex flex-col gap-3.5 bg-white mt-2 border border-[#EBEAE5]">
+            <div className="flex justify-between items-center border-b border-[#EBEAE5] pb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">✨</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6660]">Today's Wins Ledger</span>
+              </div>
+              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                {activeShift.off_day_mode || "RECOVERY"} MODE
               </span>
             </div>
 
-            <div className="flex flex-col border-l border-[#EBEAE5] pl-4">
-              <span className="text-[10px] text-[#5F6660] uppercase font-bold tracking-wider">Wake Pressure</span>
-              <span className="font-semibold text-stone-900 mt-0.5">
-                {netHoursAwake.toFixed(1)}h awake
-              </span>
-              <span className="text-[9px] text-[#5F6660] leading-snug mt-0.5">
-                Continuous awake monitoring.
-              </span>
+            {/* List of checked off outcomes */}
+            {(() => {
+              const getOffDayOutcomeText = (itemId: string, title: string) => {
+                const titleLower = title.toLowerCase();
+                if (titleLower.includes("sleep debt") || titleLower.includes("restorative sleep")) {
+                  return `Banked recovery sleep & restored energy`;
+                }
+                if (titleLower.includes("sprint 1") || titleLower.includes("sprint 2")) {
+                  return `Completed deep upskilling coding sprint`;
+                }
+                if (titleLower.includes("mindfulness") || titleLower.includes("recharge")) {
+                  return `Quieted stress response & decompressed`;
+                }
+                if (titleLower.includes("gym") || titleLower.includes("strength") || titleLower.includes("workout")) {
+                  return `Completed gym strength session`;
+                }
+                if (titleLower.includes("meal prep")) {
+                  return `Prepared high-protein shift fuel nutrition`;
+                }
+                if (titleLower.includes("outing") || titleLower.includes("dinner")) {
+                  return `Nurtured relationships & disconnected`;
+                }
+                if (titleLower.includes("clean") || titleLower.includes("declutter")) {
+                  return `Decluttered physical room workspace`;
+                }
+                if (titleLower.includes("admin") || titleLower.includes("planning")) {
+                  return `Completed calendar & life admin`;
+                }
+                if (titleLower.includes("walk")) {
+                  return `Completed active aerobic recovery walk`;
+                }
+                if (titleLower.includes("sunlight") || titleLower.includes("bright light")) {
+                  return `Anchored morning circadian baseline`;
+                }
+                if (titleLower.includes("caffeine cutoff")) {
+                  return `Protected upcoming sleep pathways`;
+                }
+                if (titleLower.includes("caffeine") || titleLower.includes("coffee")) {
+                  return `Optimized mental alertness window`;
+                }
+                if (titleLower.includes("stretching") || titleLower.includes("yoga")) {
+                  return `Decompressed muscle tension`;
+                }
+                return `Completed: ${title}`;
+              };
+
+              const completedWins = decisionPlan
+                .filter(item => completedActions[item.id])
+                .map(item => getOffDayOutcomeText(item.id, item.title));
+              
+              return (
+                <div className="flex flex-col gap-2">
+                  {completedWins.length === 0 ? (
+                    <div className="text-center py-4 flex flex-col items-center justify-center gap-2 bg-stone-50 rounded-2xl border border-dashed border-[#C5C4BE]">
+                      <Sparkles className="h-5 w-5 text-stone-400 animate-pulse" />
+                      <p className="text-[10px] text-[#5F6660] font-medium max-w-[200px]">
+                        Wins Ledger is empty. Complete tasks on your timeline to celebrate real-world outcomes.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {completedWins.map((win, idx) => (
+                          <div key={idx} className="bg-emerald-50 text-emerald-950 border border-emerald-100/70 text-[10px] font-semibold px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 animate-fade-in shadow-sm">
+                            <Check className="h-3 w-3 text-emerald-600 stroke-[3]" />
+                            <span>{win}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Notion-style Clean Utility Actions */}
+            <div className="flex justify-between items-center border-t border-[#EBEAE5] pt-3 mt-1 text-xs">
+              <button
+                onClick={() => setShowSleepLogger(true)}
+                className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Log Sleep
+              </button>
+
+              <button
+                onClick={() => setShowRosterEditor(true)}
+                className="text-[#1A1D1A] hover:underline font-semibold text-xs"
+              >
+                ✎ Change Focus Mode
+              </button>
             </div>
           </div>
+        ) : (
+          <div className="action-card p-4 flex flex-col gap-3.5 bg-white mt-2">
+            <div className="flex justify-between items-center border-b border-[#EBEAE5] pb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6660]">Telemetry & Controls</span>
+              <span className="text-[9px] text-stone-400">Checked naps subtract 4.0h</span>
+            </div>
 
-          {/* Notion-style Clean Utility Actions */}
-          <div className="flex justify-between items-center border-t border-[#EBEAE5] pt-3 mt-1 text-xs">
-            <button
-              onClick={() => setShowSleepLogger(true)}
-              className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" /> Log Sleep
-            </button>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-[#5F6660] uppercase font-bold tracking-wider">Sleep Deficit</span>
+                <span className="font-semibold text-stone-900 mt-0.5">
+                  {sleepDebt > 0 ? `${sleepDebt.toFixed(1)} hours debt` : "Fully Calibrated"}
+                </span>
+                <span className="text-[9px] text-[#5F6660] leading-snug mt-0.5">
+                  {sleepDebt > 0 
+                    ? `Focus is slightly slower today.` 
+                    : "Ideal focus capacity."}
+                </span>
+              </div>
 
-            <button
-              onClick={() => setShowRosterEditor(true)}
-              className="text-[#1A1D1A] hover:underline font-semibold text-xs"
-            >
-              ✎ Change Shift
-            </button>
+              <div className="flex flex-col border-l border-[#EBEAE5] pl-4">
+                <span className="text-[10px] text-[#5F6660] uppercase font-bold tracking-wider">Wake Pressure</span>
+                <span className="font-semibold text-stone-900 mt-0.5">
+                  {netHoursAwake.toFixed(1)}h awake
+                </span>
+                <span className="text-[9px] text-[#5F6660] leading-snug mt-0.5">
+                  Continuous awake monitoring.
+                </span>
+              </div>
+            </div>
+
+            {/* Notion-style Clean Utility Actions */}
+            <div className="flex justify-between items-center border-t border-[#EBEAE5] pt-3 mt-1 text-xs">
+              <button
+                onClick={() => setShowSleepLogger(true)}
+                className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Log Sleep
+              </button>
+
+              <button
+                onClick={() => setShowRosterEditor(true)}
+                className="text-[#1A1D1A] hover:underline font-semibold text-xs"
+              >
+                ✎ Change Shift
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 5. Notification Simulator (Founder Feature Check) */}
         <div className="border border-[#EBEAE5] rounded-2xl p-4 flex flex-col gap-2.5 bg-stone-50">
