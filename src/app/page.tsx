@@ -42,6 +42,20 @@ interface SleepLog {
   quality: number; // Subjective quality (1-10)
 }
 
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+  actions?: Array<{
+    type: string;
+    payload: any;
+    requires_approval: boolean;
+    approved?: boolean;
+    declined?: boolean;
+  }>;
+}
+
 export default function Home() {
   // Onboarding & Local Storage States
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
@@ -89,6 +103,13 @@ export default function Home() {
   // Navigation & Display States
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [showSimulatedNotif, setShowSimulatedNotif] = useState<string | null>(null);
+
+  // Chat States
+  const [chatOpen, setChatOpen] = useState<boolean>(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState<string>("");
+  const [chatLoading, setChatLoading] = useState<boolean>(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onboarded = localStorage.getItem("sb_onboarded") === "true";
@@ -139,7 +160,206 @@ export default function Home() {
         setCompletedActions(JSON.parse(savedChecks));
       } catch (e) {}
     }
+
+    const savedChat = localStorage.getItem("sb_chat_history");
+    if (savedChat) {
+      try {
+        const parsed = JSON.parse(savedChat);
+        setChatMessages(parsed);
+      } catch (e) {}
+    } else {
+      setChatMessages([
+        {
+          id: "welcome",
+          role: "assistant",
+          content: "Hey Pranav! I'm ShiftBuddy, your biological co-pilot. I can see your active roster, sleep logs, and current sleep debt. Ask me anything about vocal care, surviving night shifts, or scheduling upskilling sprints!",
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    }
   }, []);
+
+  const saveChatMessages = (msgs: ChatMessage[]) => {
+    setChatMessages(msgs);
+    localStorage.setItem("sb_chat_history", JSON.stringify(msgs));
+  };
+
+  const handleSendChatMessage = async (text: string) => {
+    if (!text.trim() || chatLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedMsgs = [...chatMessages, userMsg];
+    saveChatMessages(updatedMsgs);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: updatedMsgs.map(m => ({ role: m.role, content: m.content })),
+          context: {
+            userName: userName,
+            activeShift: activeShift,
+            sleepDebt: sleepDebt,
+            netHoursAwake: netHoursAwake,
+            sleepLogs: sleepLogs.map(l => ({
+              duration: l.duration,
+              dateString: l.dateString,
+              quality: l.quality
+            })),
+            sleepGoal: onboardingSleepGoal
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to connect to AI Coach.");
+      }
+
+      const data = await response.json();
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.message || "Sorry, I had trouble parsing that. Please try again.",
+        timestamp: new Date().toISOString(),
+        actions: data.actions || []
+      };
+
+      // Automatically execute non-approval actions
+      if (data.actions && data.actions.length > 0) {
+        data.actions.forEach((act: any) => {
+          if (!act.requires_approval) {
+            executeAction(act.type, act.payload);
+          }
+        });
+      }
+
+      saveChatMessages([...updatedMsgs, assistantMsg]);
+    } catch (err) {
+      console.error(err);
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I'm having trouble connecting right now. Please try again shortly.",
+        timestamp: new Date().toISOString()
+      };
+      saveChatMessages([...updatedMsgs, errorMsg]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const executeAction = (actionType: string, payload: any) => {
+    switch (actionType) {
+      case "UPDATE_SHIFT": {
+        const current = activeShift || DEFAULT_SHIFT;
+        const updated = {
+          ...current,
+          ...payload
+        };
+        saveActiveShift(updated);
+        if (payload.start_time) setShiftStartInput(payload.start_time);
+        if (payload.end_time) setShiftEndInput(payload.end_time);
+        if (payload.shift_name) setShiftNameInput(payload.shift_name);
+        if (payload.commute_mins !== undefined) setCommuteMinsInput(payload.commute_mins);
+        if (payload.is_off_day !== undefined) setIsOffDay(payload.is_off_day);
+        if (payload.off_day_mode) setOffDayMode(payload.off_day_mode);
+        break;
+      }
+      case "LOG_SLEEP": {
+        const wakeDateObj = payload.wakeTime ? new Date(payload.wakeTime) : new Date();
+        const newLog: SleepLog = {
+          id: Date.now().toString(),
+          duration: payload.duration,
+          wakeTime: wakeDateObj,
+          dateString: payload.dateString || "Today",
+          quality: payload.quality || 9
+        };
+        const cleanLogs = sleepLogs.filter(log => log.dateString !== newLog.dateString);
+        saveSleepLogs([newLog, ...cleanLogs]);
+        break;
+      }
+      case "SWITCH_OFFDAY_MODE": {
+        const current = activeShift || DEFAULT_SHIFT;
+        const updated = {
+          ...current,
+          is_off_day: true,
+          off_day_mode: payload.off_day_mode,
+          shift_name: `Week Off (${payload.off_day_mode.toUpperCase()})`
+        };
+        saveActiveShift(updated);
+        setOffDayMode(payload.off_day_mode);
+        setIsOffDay(true);
+        break;
+      }
+      case "TOGGLE_TASK": {
+        const updatedChecks = {
+          ...completedActions,
+          [payload.id]: payload.completed
+        };
+        saveCompletedActions(updatedChecks);
+        break;
+      }
+      case "ADD_NOTE": {
+        const updatedChecks = {
+          ...completedActions,
+          [payload.text]: true
+        };
+        saveCompletedActions(updatedChecks);
+        break;
+      }
+      default:
+        console.warn("Unhandled action type:", actionType);
+    }
+  };
+
+  const handleApproveActions = (msgId: string) => {
+    const updated = chatMessages.map(msg => {
+      if (msg.id === msgId) {
+        if (msg.actions) {
+          msg.actions.forEach(act => {
+            if (act.requires_approval) {
+              executeAction(act.type, act.payload);
+            }
+          });
+        }
+        return {
+          ...msg,
+          actions: msg.actions?.map(act => ({ ...act, approved: true }))
+        };
+      }
+      return msg;
+    });
+    saveChatMessages(updated);
+  };
+
+  const handleDeclineActions = (msgId: string) => {
+    const updated = chatMessages.map(msg => {
+      if (msg.id === msgId) {
+        return {
+          ...msg,
+          actions: msg.actions?.map(act => ({ ...act, declined: true }))
+        };
+      }
+      return msg;
+    });
+    saveChatMessages(updated);
+  };
+
+  // Auto scroll to chat bottom on new message or load
+  useEffect(() => {
+    if (chatOpen && chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, chatOpen, chatLoading]);
 
   const loadDefaultSleepLogs = () => {
     const defaultLogs = [
@@ -736,14 +956,29 @@ export default function Home() {
           </span>
         </div>
         
-        {/* Scheduler Toggle */}
-        <button
-          onClick={() => setShowRosterEditor(!showRosterEditor)}
-          className="p-2 border border-[#EBEAE5] bg-white rounded-xl hover:bg-stone-50 transition-colors"
-          title="Adjust Schedule"
-        >
-          <Settings className="h-4 w-4 text-[#5F6660]" />
-        </button>
+        <div className="flex gap-2">
+          {/* AI Coach Toggle */}
+          <button
+            onClick={() => setChatOpen(!chatOpen)}
+            className={`p-2 border rounded-xl transition-all flex items-center justify-center cursor-pointer ${
+              chatOpen 
+                ? "bg-emerald-600 border-emerald-600 text-white shadow-sm" 
+                : "border-[#EBEAE5] bg-white text-[#5F6660] hover:bg-stone-50"
+            }`}
+            title="ShiftBuddy AI Coach"
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
+
+          {/* Scheduler Toggle */}
+          <button
+            onClick={() => setShowRosterEditor(!showRosterEditor)}
+            className="p-2 border border-[#EBEAE5] bg-white rounded-xl hover:bg-stone-50 transition-colors cursor-pointer"
+            title="Adjust Schedule"
+          >
+            <Settings className="h-4 w-4 text-[#5F6660]" />
+          </button>
+        </div>
       </header>
 
       {/* Roster Scanner Inline Form Modal */}
@@ -1381,6 +1616,179 @@ export default function Home() {
         </div>
 
       </section>
+
+      {/* ShiftBuddy AI Coach bottom sheet drawer */}
+      {chatOpen && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-end justify-center p-0">
+          {/* Dismiss tap area */}
+          <div className="absolute inset-0 bg-transparent" onClick={() => setChatOpen(false)} />
+          
+          <div className="relative w-full max-w-sm bg-white rounded-t-3xl border-t border-[#EBEAE5] shadow-2xl flex flex-col h-[75vh] animate-slide-up z-10">
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[#EBEAE5]">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-bold text-sm tracking-tight font-display">ShiftBuddy AI Coach</span>
+                </div>
+                <span className="text-[9px] text-[#5F6660] font-semibold mt-0.5">
+                  Syncing: {sleepDebt.toFixed(1)}h Sleep Debt • {activeShift?.is_off_day ? "Rest Mode" : "Shift Mode"}
+                </span>
+              </div>
+              
+              <button 
+                type="button" 
+                onClick={() => setChatOpen(false)}
+                className="p-1 rounded-lg hover:bg-stone-50 text-stone-500 hover:text-black transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Message History list */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3.5 scrollbar-thin">
+              {chatMessages.map(msg => {
+                const pendingActions = msg.actions?.filter(act => act.requires_approval && !act.approved && !act.declined) || [];
+                const hasApproved = msg.actions?.some(act => act.approved);
+                const hasDeclined = msg.actions?.some(act => act.declined);
+
+                return (
+                  <div 
+                    key={msg.id} 
+                    className={`flex flex-col max-w-[85%] ${
+                      msg.role === "user" ? "self-end items-end" : "self-start items-start"
+                    }`}
+                  >
+                    <div 
+                      className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm ${
+                        msg.role === "user"
+                          ? "bg-[#1A1D1A] text-white rounded-tr-none"
+                          : "bg-[#F5F4EE] text-[#1A1D1A] rounded-tl-none border border-[#EBEAE5]"
+                      }`}
+                    >
+                      <div>{msg.content}</div>
+
+                      {/* Pending Action Card */}
+                      {msg.role === "assistant" && pendingActions.length > 0 && (
+                        <div className="mt-3 p-3 bg-emerald-50 text-emerald-950 rounded-xl border border-emerald-200 flex flex-col gap-2 shadow-sm text-[10px]">
+                          <span className="font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
+                            ⚡ Suggested Action
+                          </span>
+                          <div className="flex flex-col gap-1.5 border-t border-emerald-100/60 pt-1.5 mt-0.5">
+                            {pendingActions.map((act, idx) => (
+                              <div key={idx} className="flex flex-col gap-0.5">
+                                <span className="font-semibold text-emerald-900 text-[10px]">{act.type.replace('_', ' ')}</span>
+                                <span className="text-stone-600 font-mono text-[9px] bg-white p-1 rounded border border-stone-250/30 whitespace-pre-wrap leading-tight break-all">
+                                  {JSON.stringify(act.payload, null, 2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleApproveActions(msg.id)}
+                              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[9px] shadow-sm transition-colors cursor-pointer"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeclineActions(msg.id)}
+                              className="flex-1 py-1.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 font-bold rounded-lg text-[9px] transition-colors cursor-pointer"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Approved Status Badge */}
+                      {msg.role === "assistant" && hasApproved && (
+                        <div className="mt-2 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-150 flex items-center gap-1 w-max">
+                          ✓ Action Applied
+                        </div>
+                      )}
+
+                      {/* Declined Status Badge */}
+                      {msg.role === "assistant" && hasDeclined && (
+                        <div className="mt-2 text-[9px] font-bold text-stone-500 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-300 flex items-center gap-1 w-max">
+                          ✗ Action Dismissed
+                        </div>
+                      )}
+                    </div>
+                    
+                    <span className="text-[8px] text-stone-400 mt-1 px-1">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                );
+              })}
+              {chatLoading && (
+                <div className="self-start flex flex-col items-start max-w-[85%]">
+                  <div className="bg-[#F5F4EE] text-[#1A1D1A] rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs border border-[#EBEAE5] shadow-sm flex gap-1 items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-stone-500 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-stone-500 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-stone-500 animate-bounce" />
+                  </div>
+                </div>
+              )}
+              {/* Dummy element to anchor scroll to bottom */}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Suggestion Chips */}
+            {chatMessages.length <= 2 && (
+              <div className="px-5 pb-2 flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-[#5F6660] uppercase tracking-wider">Suggested Questions:</span>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    "I slept 4 hours today. How do I survive?",
+                    "What is my peak coding study window today?",
+                    "My throat is sore from voice calls. Any tips?",
+                    "Give me a schedule reset for my Day Off."
+                  ].map(chip => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleSendChatMessage(chip)}
+                      className="text-left text-[10px] font-semibold text-[#1A1D1A] bg-[#FAF9F6] border border-[#EBEAE5] hover:bg-stone-50 rounded-xl px-3 py-2 transition-colors cursor-pointer"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input form */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendChatMessage(chatInput);
+              }}
+              className="p-4 border-t border-[#EBEAE5] flex gap-2 bg-stone-50 rounded-b-3xl"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask ShiftBuddy a question..."
+                disabled={chatLoading}
+                className="flex-1 bg-white border border-[#EBEAE5] rounded-xl px-3 py-2.5 text-xs text-[#1A1D1A] focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/35"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim() || chatLoading}
+                className="bg-[#1A1D1A] hover:bg-black text-white px-4 rounded-xl text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
