@@ -146,3 +146,53 @@ We implemented structured **Week Off Focus Modes** coupled with an **Outcome-Bas
     *   🍕 **Social:** Allocates daylight relationship time and digital-free evening dinners.
     *   🧹 **Reset:** Plans workspace decluttering, budget admin, and next week's schedule planning.
 *   **Guilt-Free Outcomes Wins Ledger:** We completely removed abstract numerical scoring. Toggled checklist tasks are translated into positive real-world wins (e.g., *“Completed deep upskilling coding sprint”* or *“Banked recovery sleep & restored energy”*). This builds a positive "Personal Life Resume" without anxiety.
+
+---
+
+## 9. ShiftBuddy Action Copilot: Truncation-Resilient JSON Mutator
+
+### The Biological & Cognitive Hurdle
+Shift workers operating in high-stress environment cycles (such as night-shift Concentrix/Amazon voice agents) experience extreme decision fatigue. Expecting a sleep-deprived worker to manually navigate forms, log sleep durations, look up study offsets, or rebuild schedule blocks is a major UX friction point. 
+
+While conversational chat interfaces (e.g. standard ChatGPT wrappers) provide advice, they do not reduce user friction—the worker still has to go back to the dashboard and make the changes themselves.
+
+### Our Solution
+We built the **ShiftBuddy Action Copilot**, transforming the chat assistant into a structured **action dispatch engine** that modifies the dashboard based on natural dialog.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant Gemini
+    
+    User->>Frontend: "I slept only 4 hours"
+    Frontend->>API: Send messages + context state
+    API->>Gemini: Prompt with strict JSON schema
+    Gemini-->>API: Return response (potentially truncated)
+    API->>API: Run through JSON Repair Fallback Engine
+    API-->>Frontend: Clean message + validated action array
+    Frontend->>User: Display Suggested Action Card
+    User->>Frontend: Click "Approve"
+    Frontend->>Frontend: Mutate React state & persist to localStorage
+```
+
+### Technical Challenge: API Response Truncation
+When the Gemini API is configured to return structured JSON (`responseMimeType: "application/json"`) under severe output token constraints (such as sandbox environment caps at ~150 tokens), it frequently hits `MAX_TOKENS` and cuts off mid-generation (e.g. inside the `actions` array). This results in broken JSON strings that fail standard `JSON.parse()`, returning raw parser exceptions and blocking UI rendering.
+
+### The Repair Algorithm
+To ensure 100% resilience, we implemented a custom **Brace-Balanced JSON Repair Engine** in the server-side route:
+
+1.  **Extract the Message:** A regex isolates the `"message"` value, even if the rest of the string is broken. If the message itself is cut off, it captures the partial string and cleanly appends `...`.
+2.  **Scan the Actions Array:** The engine locates the starting index of `"actions": [`. It then iterates character-by-character, balancing curly braces `{` and `}`.
+3.  **Filter & Reconstruct:** Every time `openBraces` returns to `0`, a complete action block is successfully parsed and pushed to the array. Trailing incomplete blocks are safely ignored.
+4.  **Graceful Output:** The route returns a clean, fully-formed JSON object containing the message and all completed actions generated before the token limit was reached.
+
+### State Mutation Dispatcher
+Actions requiring approval are loaded as interactive cards inside the chat bubble. Clicking **Approve** dispatches the payloads to client-side state mutators:
+*   `LOG_SLEEP`: Prepend sleep log, apply subjective quality multipliers, and recalculate rolling sleep debt.
+*   `SWITCH_OFFDAY_MODE`: Rebuild the daily schedule with specialized Recovery, Growth, Fitness, Social, or Reset timelines.
+*   `UPDATE_SHIFT`: Mutate active shifts, dates, start/end bounds, and commute transits.
+*   `TOGGLE_TASK` / `ADD_NOTE`: Modify checklist item completeness and append achievements directly to the Wins Ledger.
+
+This allows a fatigued user to execute complex circadian adjustments across the app with a single click.

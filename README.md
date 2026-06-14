@@ -12,18 +12,22 @@
 ---
 
 ## 🗺️ System Architecture Flow
-
-The following diagram illustrates how user schedules are parsed, computed, and converted into action-ready timelines:
-
+ 
+The following diagram illustrates how user schedules are parsed, computed, and converted into action-ready timelines, and how the **ShiftBuddy Action Copilot** modifies the state:
+ 
 ```mermaid
 graph TD
-    A[User Roster Screenshot] -->|Upload to API| B(Gemini 2.5 Flash Parser)
+    A[User Roster Screenshot] -->|Upload to API| B(Gemini 3.5 Flash Parser)
     B -->|Extracts Shift JSON| C{Circadian Rules Engine}
     C -->|Calculate Sleep Window| D[Biological Recovery Block]
     C -->|Calculate Retinal Exposure| E[Circadian Reset / Sunglasses]
     C -->|Calculate Adenosine half-life| F[Caffeine Cutoff Milestones]
     C -->|Identify Peak Cognition| G[Upskilling Study Blocks]
     D & E & F & G --> H[Unified Shift Companion Timeline]
+    
+    I[User Chat Query] -->|Local Storage Context| J(ShiftBuddy Action Copilot API)
+    J -->|Generates Repairable JSON| K[JSON Repair Fallback Engine]
+    K -->|Dispatches Approved Actions| H
 ```
 
 ---
@@ -33,6 +37,7 @@ graph TD
 | Feature | Primary Focus | Physiological Purpose | Action Trigger |
 | :--- | :--- | :--- | :--- |
 | **Next Best Action (Hero)** | Chrono-Prioritization | Guides decisions instantly under high cognitive fatigue. | Single-tap `Mark Complete` |
+| **ShiftBuddy Copilot Drawer** | AI Action Engine | Resolves scheduling, sleep logging, and focus resets dynamically. | Chat input & approval cards |
 | **OCR Roster Scanner** | Frictionless Ingestion | Converts confusing shift images (Excel, Kronos) in 3 seconds. | Drag & Drop image upload |
 | **Upcoming Timeline** | Truncated Horizon | Shows the next 3 steps only to avoid calendar overwhelm. | Chronological timeline dot |
 | **Caring Safety Alerts** | Biomarker Defense | Notifies users when continuous awake time hits 17h/20h limits. | Apple Health-style banner |
@@ -79,9 +84,10 @@ Open [http://localhost:3000](http://localhost:3000) on your device or in desktop
 Explore the core algorithms, pages, and schema files:
 
 *   **Circadian Rules Algorithm:** [circadianEngine.ts](src/lib/circadianEngine.ts) - Computes optimal sleep/wake cycles.
-*   **Gemini Parser API:** [route.ts](src/app/api/parse-roster/route.ts) - Base64 encodes images and runs Gemini fallback streams.
-*   **Shift Companion Interface:** [page.tsx](src/app/page.tsx) - Renders the mobile onboarding and timelines.
+*   **Gemini Parser API:** [route.ts](src/app/api/parse-roster/route.ts) - Base64 encodes roster images and parses details.
+*   **ShiftBuddy Copilot API:** [route.ts](src/app/api/chat/route.ts) - Directs the conversational agent and outputs structured mutations.
+*   **Shift Companion Interface:** [page.tsx](src/app/page.tsx) - Renders the mobile onboarding, timeline, wins ledger, and chat drawer.
 *   **Database Foundations:** [schema.sql](schema.sql) - Production DDL tables and indexes.
 
 > [!IMPORTANT]
-> Read our [PROBLEM_SOLVING.md](PROBLEM_SOLVING.md) to understand how we solved major circadian-overlap, date-wrapping, and Gemini API fallback challenges.
+> Read our [PROBLEM_SOLVING.md](PROBLEM_SOLVING.md) to understand how we solved major circadian-overlap, date-wrapping, Gemini API truncation, and client action mutations.
